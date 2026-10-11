@@ -1931,6 +1931,47 @@
     const CHUNK_SIZE = 300000;
     const LS_LASTSYNC = "kh_lastsync_v1";
     const LS_DEVICE   = "kh_deviceid_v1";
+    // Синхронлаш ҳолати — ҲАР қурилмага хос, булутга ЧИҚМАЙДИ (SYNC_KEYS'да йўқ).
+    // LS_DIRTY: булутга етмаган маҳаллий ўзгариш бор (қиймат — ҳисоблагич, вақт эмас).
+    // LS_BASEREV: булутнинг қайси версия рақамини кўриб, шу билан келишган охирги ҳолат.
+    const LS_DIRTY    = "kh_dirty_v1";
+    const LS_BASEREV  = "kh_baserev_v1";
+    let syncConflict  = null;      // {cloudRev} — булут ва маҳаллий ўзгариш тўқнашганда; ҳал қилинмагунча ҳеч нарса устига ёзилмайди
+    let resyncRequested = false;   // сақлаш давом этаётганда яна сўров келса — тугагач такрорлаш
+    const cloudRevOf = meta => Number((meta && meta.rev) || 0);
+    const baseRev = () => { const v = localStorage.getItem(LS_BASEREV); return v === null ? null : Number(v); };
+    const setBaseRev = r => localStorage.setItem(LS_BASEREV, String(r));
+    const isDirty = () => localStorage.getItem(LS_DIRTY) !== null;
+    function markLocalChange(){
+      const n = Number(localStorage.getItem(LS_DIRTY) || 0) + 1;
+      localStorage.setItem(LS_DIRTY, String(n));
+    }
+    // Бизнес маълумот борми (бўш қурилма булутдаги маълумотни ўчирмаслиги учун)
+    function localHasBusinessData(){
+      return BUSINESS_DATA_KEYS.some(d=>{
+        try{ const a = JSON.parse(localStorage.getItem(d.storageKey) || "[]"); return Array.isArray(a) && a.length > 0; }
+        catch(e){ return false; }
+      });
+    }
+    // Маҳаллий ва булут ҳолати бир хилми (барча синхрон калитлар бўйича)
+    function sameAsCloud(cloudData){
+      return SYNC_KEYS.every(k=>{
+        const isBiz = BUSINESS_DATA_KEYS.some(d=> d.storageKey === k);
+        const norm = raw => {
+          if(raw === undefined || raw === null) return isBiz ? "[]" : "";
+          if(!isBiz) return String(raw);
+          try{ return JSON.stringify(JSON.parse(raw)); }catch(e){ return String(raw); }
+        };
+        return norm(localStorage.getItem(k)) === norm(cloudData[k]);
+      });
+    }
+    const getConflict = () => syncConflict;
+    function setConflict(c){
+      syncConflict = c || null;
+      if(syncConflict) setStatus("⚠ Қарама-қаршилик — маълумотни танланг", "var(--bad)");
+      else if(ready) setStatus("Уланган ✓", "var(--good)");
+      if(typeof renderEntryBanners === "function") renderEntryBanners();
+    }
     const LS_LASTVER  = "kh_lastver_v1";            // ҳар қурилмага хос (синхронланмайди)
     const VERSION_MIN_GAP = 2*60*60*1000;           // автомат версиялар орасида камида 2 соат
     const VERSION_KEEP = 30;                         // охирги нечта версия сақланади
@@ -2009,72 +2050,84 @@
       el.textContent = fmtDate(localDateStr(d)) + " " + d.toLocaleTimeString("uz-UZ");
     }
 
-    async function upload(silent, force){
-      // Агент қурилмаси ҳеч қачон умумий базага ёзмайди — фақат ўз ёзувини
-      // "inbox" орқали юборади.
-      if(agentMode) return false;
-      if(!ready || syncing) return false;
+    // Булутга ёзиш. Булут рақами кутилганга мос бўлсагина ёзилади (транзакция) — иккала қурилма
+    // бир пайтда ёзса ҳам бири иккинчисини босиб кетмайди. Мос келмаса — ҳолат қайта баҳоланади.
+    // force: текширувсиз (фақат версиядан тиклашдан кейин); expectRev: аниқ кутилган рақам.
+    async function upload(silent, force, expectRev){
+      if(agentMode) return false;                  // агент умумий базага ЁЗМАЙДИ
+      if(!ready) return false;
+      if(!force && syncConflict){                  // зиддият ҳал бўлмагунча устига ёзмаймиз
+        if(!silent) toast("Аввал булут билан қарама-қаршиликни ҳал қилинг");
+        return false;
+      }
+      if(syncing){ resyncRequested = true; return false; }
       syncing = true;
       await ensureAuth();
+      const seqAtStart = localStorage.getItem(LS_DIRTY);
+      let ok = false, needReread = false;
       try{
         setStatus("Сақланмоқда...");
-
-        // ⚠️ БУЛУТ АСОСИЙ МАНБА: юклашдан олдин булутда бошқа қурилма ёзиб
-        // кетмаганини текширамиз. Агар булут бизникидан янгироқ бўлса —
-        // ўзимизникини УСТИГА ЁЗМАЙМИЗ, аввал ўзимиз булутдагини тортиб оламиз.
-        try{
-          const cur = await db.collection(COLL_BACKUP).doc(DOC_MAIN).get();
-          if(cur.exists && !force){
-            const meta = cur.data();
-            const mySync = Number(localStorage.getItem(LS_LASTSYNC) || 0);
-            if(meta.device !== deviceId() && (meta.updatedAt||0) > mySync + 1000){
-              setStatus("Булутдан янгиланмоқда...", "var(--gold)");
-              await restore();
-              syncing = false;
-              softRefreshAfterRestore();
-              return false;
-            }
-          }
-        }catch(e){ /* текширув имкони бўлмаса — давом этамиз */ }
-
         const payload = collectLocal();
         const chunks = [];
         for(let i=0;i<payload.length;i+=CHUNK_SIZE) chunks.push(payload.slice(i,i+CHUNK_SIZE));
-        const now = Date.now();
-        let prevCount = 0;
-        try{
-          const prev = await db.collection(COLL_BACKUP).doc(DOC_MAIN).get();
-          if(prev.exists) prevCount = prev.data().chunkCount || 0;
-        }catch(e){}
-        const batch = db.batch();
-        chunks.forEach((c,i)=> batch.set(db.collection(COLL_BACKUP).doc("chunk_"+i), {data:c}));
-        for(let i=chunks.length;i<prevCount;i++) batch.delete(db.collection(COLL_BACKUP).doc("chunk_"+i));
-        batch.set(db.collection(COLL_BACKUP).doc(DOC_MAIN), {
-          updatedAt: now, chunkCount: chunks.length, sizeBytes: payload.length, device: deviceId()
+        const base = baseRev();
+        const expected = expectRev !== undefined ? expectRev : (base === null ? 0 : base);
+        let newRev = 0;
+        await db.runTransaction(async tx=>{
+          const mainRef = db.collection(COLL_BACKUP).doc(DOC_MAIN);
+          const cur = await tx.get(mainRef);
+          // Булутда ҳеч нарса бўлмаса — маҳаллийни юклаймиз; бўлса — рақам кутилганга мос бўлиши шарт
+          const curRev = cur.exists ? cloudRevOf(cur.data()) : 0;
+          if(cur.exists && !force && curRev !== expected){
+            const err = new Error("REV_CONFLICT"); err.code = "REV_CONFLICT"; throw err;
+          }
+          newRev = curRev + 1;
+          const prevCount = cur.exists ? (cur.data().chunkCount || 0) : 0;
+          chunks.forEach((ch,i)=> tx.set(db.collection(COLL_BACKUP).doc("chunk_"+i), {data:ch}));
+          for(let i=chunks.length;i<prevCount;i++) tx.delete(db.collection(COLL_BACKUP).doc("chunk_"+i));
+          tx.set(mainRef, { updatedAt: Date.now(), chunkCount: chunks.length, sizeBytes: payload.length, device: deviceId(), rev: newRev });
         });
-        await batch.commit();
-        localStorage.setItem(LS_LASTSYNC, String(now));
-        const warnEl = document.getElementById("cloudConflictWarn");
-        if(warnEl){ warnEl.style.display = "none"; warnEl.innerHTML = ""; }
+        setBaseRev(newRev);
+        // Агар юклаш давомида янги ўзгариш бўлмаган бўлса — белгини олиб ташлаймиз
+        if(localStorage.getItem(LS_DIRTY) === seqAtStart) localStorage.removeItem(LS_DIRTY);
+        localStorage.setItem(LS_LASTSYNC, String(Date.now()));
+        if(syncConflict) setConflict(null);
         setStatus("Сақланди ✓", "var(--good)");
-        setLastSyncLabel(now);
+        setLastSyncLabel(Date.now());
         if(!silent) toast("Булутга сақланди ✓");
-        // Версиялар тарихи: керак бўлса (2 соатдан ошган бўлса) янги версия оламиз.
-        // Бу юклашнинг ЎЗИНИ кечиктирмайди ва хато берса ҳам юклашга таъсир қилмайди.
+        // Версиялар тарихи: керак бўлса янги версия (хато юкланишга таъсир қилмайди)
         maybeCreateVersion(payload).catch(e=> console.warn("Версия сақланмади:", e && e.message));
-        return true;
+        ok = true;
       }catch(e){
-        console.error("Булутга сақлашда хато:", e);
-        setStatus("Сақланмади (офлайн?)", "var(--bad)");
-        if(!silent) toast("Булутга сақлаб бўлмади — интернетни текширинг");
-        return false;
+        if(e && e.code === "REV_CONFLICT"){ needReread = true; }
+        else{
+          console.error("Булутга сақлашда хато:", e);
+          setStatus("Сақланмади (офлайн?)", "var(--bad)");
+          if(!silent) toast("Булутга сақлаб бўлмади — интернетни текширинг");
+        }
       }finally{ syncing = false; }
+      if(needReread){
+        resyncRequested = false;
+        // Булут бу пайтда бошқа қурилма томонидан ўзгарган — ҳолатни қайта текширамиз (устига ёзмаймиз)
+        try{
+          const m = await db.collection(COLL_BACKUP).doc(DOC_MAIN).get();
+          if(m.exists) await reconcile(m.data());
+        }catch(e){ setStatus("Уланмади (офлайн?)", "var(--bad)"); }
+      } else if(resyncRequested){
+        // Кутилаётган сўров фақат ҳали ҳам булутга етмаган ўзгариш бўлса бажарилади —
+        // юклаш аллақачон барча ўзгаришни олган бўлса, ортиқча ёзув килинмайди
+        resyncRequested = false;
+        if(isDirty()) scheduleUpload();
+      }
+      return ok;
     }
 
     function scheduleUpload(){
       if(agentMode || !ready) return;
       clearTimeout(syncTimer);
-      syncTimer = setTimeout(()=> upload(true), 900);
+      // Таймер фақат ҳақиқатан булутга етмаган ўзгариш бўлса юклайди (бошқа йўл билан аллақачон
+      // юкланган бўлса — ортиқча ёзув қилинмайди)
+      syncTimer = setTimeout(()=>{ if(isDirty()) upload(true); }, 900);
     }
 
     async function fetchCloud(){
@@ -2118,9 +2171,13 @@
             if(cloud.data[k] !== undefined) localStorage.setItem(k, cloud.data[k]);
             else if(localStorage.getItem(k) !== null) localOnly = true;
           });
-          localStorage.setItem(LS_LASTSYNC, String(cloud.meta.updatedAt || Date.now()));
+          localStorage.setItem(LS_LASTSYNC, String(Date.now()));
+          // Булут нусхасини қабул қилдик: база янгиланади, маҳаллий ўзгариш белгиси олиб ташланади
+          setBaseRev(cloudRevOf(cloud.meta));
+          localStorage.removeItem(LS_DIRTY);
         }finally{ restoring = false; }
-        if(localOnly) scheduleUpload();
+        // Булутда йўқ, маҳаллий бор маълумот бўлса — уни булутга чиқариш учун ўзгариш сифатида белгилаймиз
+        if(localOnly){ markLocalChange(); scheduleUpload(); }
         return true;
       }catch(e){
         console.error(e); toast("Тиклаб бўлмади"); return false;
@@ -2363,27 +2420,85 @@
       return d.exists ? (d.data().list || []) : null;
     }
 
+    // Булут ҳолатини маҳаллий ҳолат билан солиштириб, тўғри қарорни қабул қилади.
+    // Қоида (соат эмас, версия рақами ва ўзгариш белгиси асосида):
+    //  • булут ўзгармаган → маҳаллий ўзгариш бўлса юклаймиз, бўлмаса ҳеч нарса;
+    //  • булут ўзгарган, маҳаллий ўзгариш ЙЎҚ → булутдан оламиз (автоматик);
+    //  • булут ўзгарган ВА маҳаллий ўзгариш бор → ЗИДДИЯТ: ҳеч нарса ўчирилмайди, фойдаланувчи танлайди.
+    async function reconcile(meta){
+      if(agentMode || !ready) return false;
+      const cloudRev = cloudRevOf(meta);
+      const base = baseRev();
+      if(base !== null && cloudRev === base){
+        if(isDirty()) return upload(true);
+        setStatus("Уланган ✓", "var(--good)");
+        return false;
+      }
+      // Тез-тез ўзгариш ҳимояси: булут минутига кўп марта ўзгарса, текширув ҳам вақтинча тўхтатилади
+      if(!autoRestoreAllowed()) return false;
+      const cloud = await fetchCloud();
+      if(!cloud) return false;
+      if(sameAsCloud(cloud.data)){
+        // Мазмун бир хил — булутда ҳамма ўзгариш аллақачон бор: база янгиланади, белги олинади, ёзиш шарт эмас
+        setBaseRev(cloudRev);
+        localStorage.removeItem(LS_DIRTY);
+        setStatus("Уланган ✓", "var(--good)");
+        return false;
+      }
+      if(!isDirty() && base !== null || !localHasBusinessData()){
+        if(!autoRestoreAllowed()) return false;
+        setStatus("Булутдан янгиланмоқда...", "var(--gold)");
+        const ok = await restore();
+        if(ok){ softRefreshAfterRestore(); setStatus("Уланган ✓", "var(--good)"); }
+        return ok;
+      }
+      setConflict({ cloudRev });
+      return false;
+    }
+
     async function checkOnStart(){
-      if(!ready) return;
+      if(!ready || agentMode) return;
       await ensureAuth();
       try{
         const main = await db.collection(COLL_BACKUP).doc(DOC_MAIN).get();
-        const localSync = Number(localStorage.getItem(LS_LASTSYNC) || 0);
-        setLastSyncLabel(localSync || null);
+        setLastSyncLabel(Number(localStorage.getItem(LS_LASTSYNC) || 0) || null);
         if(!main.exists){
           setStatus("Уланган (илк захира юкланмоқда...)");
           await upload(true);
           return;
         }
-        const meta = main.data();
-        if((meta.updatedAt||0) > localSync + 1000 && meta.device !== deviceId()){
-          setStatus("Булутдан янгиланмоқда...", "var(--gold)");
-          if(await restore()){ softRefreshAfterRestore(); }
-        }else{
-          setStatus("Уланган ✓", "var(--good)");
-          if(Date.now() - (meta.updatedAt||0) > 6*3600*1000) upload(true);
-        }
+        await reconcile(main.data());
       }catch(e){ setStatus("Уланмади (офлайн?)", "var(--bad)"); }
+    }
+
+    // Зиддиятни ҳал қилиш. Иккала нусха ҳам версиялар тарихида сақланади — ҳеч нарса йўқолмайди.
+    async function resolveConflict(choice){
+      const cf = syncConflict;
+      if(!cf || !ready) return false;
+      const msg = choice === "local"
+        ? "Бу қурилмадаги ўзгаришлар булутдаги нусха устига ёзилади.\n\nБулутдаги ҳозирги нусха версиялар тарихида сақланади.\n\nДавом этасизми?"
+        : "Булутдаги нусха олинади, бу қурилмадаги булутга етмаган ўзгаришлар эса версиялар тарихига сақланиб, жорий маълумотдан олинади.\n\nДавом этасизми?";
+      if(!(await customConfirmAsync(msg))) return false;
+      await ensureAuth();
+      try{
+        const cloud = await fetchCloud();
+        if(choice === "local"){
+          if(cloud){
+            await createVersion(JSON.stringify(cloud.data), "Булут нусхаси (маҳаллий ўзгаришлар устун келди)");
+          }
+          setConflict(null);
+          return await upload(false, false, cloud ? cloudRevOf(cloud.meta) : 0);
+        }
+        await createVersion(collectLocal(), "Маҳаллий ўзгаришлар (булут нусхаси устун келди)");
+        setConflict(null);
+        const ok = await restore();
+        if(ok) softRefreshAfterRestore();
+        return ok;
+      }catch(e){
+        console.error("Зиддиятни ҳал қилишда хато:", e);
+        toast("Версия сақлаб бўлмади — қарама-қаршилик ҳал қилинмади");
+        return false;
+      }
     }
 
     function autoRestoreAllowed(){
@@ -2428,8 +2543,16 @@
       alert(lines.join("\n"));
     }
 
+    // Ҳар сақланадиган ўзгариш белгиланади — ҳатто интернет йўқ бўлганда ҳам (кейин юкланиш учун)
+    (function installLocalChangeTracking(){
+      const origSet = localStorage.setItem.bind(localStorage);
+      const origRemove = localStorage.removeItem.bind(localStorage);
+      localStorage.setItem = function(k,v){ origSet(k,v); if(!restoring && SYNC_KEYS.indexOf(k)!==-1){ markLocalChange(); scheduleUpload(); } };
+      localStorage.removeItem = function(k){ origRemove(k); if(!restoring && SYNC_KEYS.indexOf(k)!==-1){ markLocalChange(); scheduleUpload(); } };
+    })();
+
     return {
-      isReady, getDb, debugAuthStatus,
+      isReady, getDb, getConflict, resolveConflict, debugAuthStatus,
       listVersions, createVersionNow, restoreVersion,
       setAgentMode(v){ agentMode = !!v; },
       startReadOnly(){
@@ -2439,22 +2562,18 @@
       },
       start(){
         if(!init()){ setStatus("Уланмади (интернет йўқ)", "var(--bad)"); return false; }
-        const origSet = localStorage.setItem.bind(localStorage);
-        const origRemove = localStorage.removeItem.bind(localStorage);
-        localStorage.setItem = function(k,v){ origSet(k,v); if(!restoring && SYNC_KEYS.indexOf(k)!==-1) scheduleUpload(); };
-        localStorage.removeItem = function(k){ origRemove(k); if(!restoring && SYNC_KEYS.indexOf(k)!==-1) scheduleUpload(); };
         setLastSyncLabel(Number(localStorage.getItem(LS_LASTSYNC)||0) || null);
 
-        // ЖОНЛИ КУЗАТУВ (реал вақт): бошқа қурилма/агент ёзган заҳоти —
-        // тасдиқлашсиз, автоматик тортиб олинади ва саҳифа янгиланади.
+        // ЖОНЛИ КУЗАТУВ (реал вақт): бошқа қурилма ёзган заҳоти — версия рақами бўйича текширилади.
+        // Вақт (соат) солиштирилмайди: қурилма соати нотўғри бўлса ҳам тўғри ишлайди.
         ensureAuth().then(()=>{
           db.collection(COLL_BACKUP).doc(DOC_MAIN).onSnapshot(doc=>{
-            if(!doc.exists) return;
+            if(!doc.exists || agentMode) return;
+            if(doc.metadata && doc.metadata.hasPendingWrites) return;   // ўз ёзувимиз ҳали тасдиқланмаган
             const meta = doc.data();
-            const mySync = Number(localStorage.getItem(LS_LASTSYNC) || 0);
-            if(meta.device !== deviceId() && (meta.updatedAt||0) > mySync + 1000 && !agentMode && autoRestoreAllowed()){
-              restore().then(ok=>{ if(ok) softRefreshAfterRestore(); });
-            }
+            if(meta.device === deviceId()) return;                       // ўз ёзувимиз — база аллақачон янгиланган
+            if(cloudRevOf(meta) === baseRev()) return;                   // ўзгариш йўқ
+            reconcile(meta).catch(e=> console.warn("Синхронлашда хато:", e && e.message));
           }, e=> console.warn("Жонли кузатувда хато:", e && e.message));
         });
 
@@ -3126,7 +3245,20 @@
       html += `<div class="card" style="margin-bottom:14px;"><h2 style="margin-bottom:12px;">Бугунги кунлик мақсад бажарилиши</h2>${rows}</div>`;
     }
 
+    const cf = CLOUD.getConflict && CLOUD.getConflict();
+    if(cf){
+      html = `<div class="card" style="border-left:4px solid var(--bad);padding:14px 18px;margin-bottom:14px;">
+        <b style="color:var(--bad);">⚠ Булут билан қарама-қаршилик</b><br>
+        <span style="font-size:13px;">Бу қурилмада булутга етмаган ўзгаришлар бор, булутда эса бошқа қурилма ўзгартирган.
+        Дастур ҳеч нарсани ўчирмайди. Иккала нусха ҳам версиялар тарихида сақланади. Қайсисини асосий қиламиз?</span>
+        <div class="actions-row" style="margin-top:10px;">
+          <button class="btn gold small" data-syncfix="local">Менинг ўзгаришларим устун</button>
+          <button class="btn outline small" data-syncfix="cloud">Булут нусхаси устун</button>
+        </div>
+      </div>` + html;
+    }
     el.innerHTML = html;
+    el.querySelectorAll("[data-syncfix]").forEach(b=> b.addEventListener("click", ()=> CLOUD.resolveConflict(b.dataset.syncfix)));
   }
 
   function renderTodayStats(){
@@ -3770,6 +3902,9 @@ ${XL_PAGE}
           attentionItems.push({color:"var(--bad)", text:`💳 ${esc(k)} қарзи чегарадан ошган: <b>${fmt(qarz)} сўм</b> (чегара: ${fmt(debtLimit)})`});
         }
       });
+    }
+    if(CLOUD.getConflict && CLOUD.getConflict()){
+      attentionItems.push({color:"var(--bad)", text:"⚠ Булут билан қарама-қаршилик — «Ёзув киритиш» бўлимида қайси нусха асосий эканини танланг"});
     }
     // Олинмай турган нақд пул (энг эски олинмаган кундан бери ўтган кунга қараб)
     const cashDays = loadDashCashDays();
