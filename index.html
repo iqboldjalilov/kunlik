@@ -108,6 +108,13 @@
   .card.collapsible .chev2{font-size:13px;color:var(--muted);transition:transform .15s;flex:none;}
   .card.collapsible.open > h2 .chev2{transform:rotate(90deg);}
   .card.collapsible > .collapse-body{display:none;}
+  .subsec{margin-top:14px;}
+  .subsec > h3{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px;padding-top:12px;border-top:1px dashed var(--line);font-size:14.5px;}
+  .subsec > h3:hover{color:var(--gold);}
+  .subsec > h3 .chev2{font-size:12px;color:var(--muted);transition:transform .15s;flex:none;}
+  .subsec.open > h3 .chev2{transform:rotate(90deg);}
+  .subsec > .collapse-body{display:none;}
+  .subsec.open > .collapse-body{display:block;animation:fadeIn .2s ease;}
   .card.collapsible.open > .collapse-body{display:block;animation:fadeIn .2s ease;}
   .section-divider{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:26px 0 12px;padding-top:10px;border-top:1px dashed var(--line);}
   [data-theme="dark"] .more-toggle{color:#f3d98a;}
@@ -2896,6 +2903,81 @@
     });
   });
 
+  // ---- Барча ойналарда бўлимларни йиғиш/ёйиш (харажат ва созламадаги каби) ----
+  // Кам ишлатиладиган бўлимлар ёпиқ туради; ҳар бир бўлимнинг ҳолати шу қурилмада эсда қолади.
+  (function setupCollapsibleSections(){
+    const KEY = "kh_ui_sections_v1";                  // фақат шу қурилма учун (булутга чиқмайди)
+    let saved = {};
+    try{ saved = JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ saved = {}; }
+    // Асосий ишчи бўлимлар — очиқ ҳолатда бошланади
+    const DEFAULT_OPEN = {
+      entry:     ["Янги кунлик ёзув"],
+      records:   ["📅 Ойлик жадвал", "Барча ёзувлар"],
+      summary:   ["Ойлик хулоса", "🏆 Шофёрлар рейтинги"],
+      yearly:    ["Йиллик хулоса"],
+      debts:     ["Шофёрлар бўйича қарз ҳолати"],
+      dashboard: ["🔴 Эътибор талаб қилади", "💰 Молиявий занжир"]
+    };
+    const CHEV = '<span class="chev2">▸</span>';
+    const titleOf = h => Array.from(h.childNodes).filter(n=> n.nodeType === 3).map(n=> n.textContent).join("").replace(/\s+/g," ").trim();
+    const ignoreClick = e => e.target.closest("button,input,select,textarea,a,label,.help-ic,.btn");
+    const persist = () => { try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){} };
+    const stateOf = (viewId, title, dflt) => { const k = viewId + "|" + title; return (k in saved) ? !!saved[k] : dflt; };
+    const remember = (viewId, title, open) => { saved[viewId + "|" + title] = open ? 1 : 0; persist(); };
+    const defaultOpen = (viewId, title) => (DEFAULT_OPEN[viewId] || []).some(p=> title.startsWith(p));
+
+    // Кичик бўлим (h3): ундан кейинги элементлар (кейинги h3/hr/h2/карточкагача) унинг ичига киради
+    function wrapSubsections(container, viewId){
+      const h3s = Array.from(container.children).filter(k=> k.tagName === "H3");
+      h3s.forEach(h3=>{
+        const group = []; let n = h3.nextElementSibling;
+        while(n && !["H2","H3","HR"].includes(n.tagName) && !n.classList.contains("card")){ group.push(n); n = n.nextElementSibling; }
+        const wrap = document.createElement("div"); wrap.className = "subsec";
+        const body = document.createElement("div"); body.className = "collapse-body";
+        container.insertBefore(wrap, h3);
+        wrap.appendChild(h3);
+        group.forEach(x=> body.appendChild(x));
+        wrap.appendChild(body);
+        h3.insertAdjacentHTML("beforeend", CHEV);
+        const title = titleOf(h3);
+        wrap.classList.toggle("open", stateOf(viewId, title, false));
+        h3.addEventListener("click", e=>{
+          if(ignoreClick(e)) return;
+          const o = !wrap.classList.contains("open");
+          wrap.classList.toggle("open", o); remember(viewId, title, o);
+        });
+      });
+    }
+
+    // Карточка (h2): мазмуни .collapse-body ичига ўтади, сарлавҳа ҳамиша кўринади
+    function makeCardCollapsible(card, viewId){
+      const h2 = Array.from(card.children).find(k=> k.tagName === "H2");
+      if(!h2 || card.classList.contains("collapsible")) return;
+      const body = document.createElement("div"); body.className = "collapse-body";
+      Array.from(card.childNodes).forEach(n=>{ if(n !== h2) body.appendChild(n); });
+      card.appendChild(body);
+      card.classList.add("collapsible");
+      h2.insertAdjacentHTML("beforeend", CHEV);
+      const title = titleOf(h2);
+      card.classList.toggle("open", stateOf(viewId, title, defaultOpen(viewId, title)));
+      h2.addEventListener("click", e=>{
+        if(ignoreClick(e)) return;
+        const o = !card.classList.contains("open");
+        card.classList.toggle("open", o); remember(viewId, title, o);
+      });
+    }
+
+    document.querySelectorAll("section.view").forEach(view=>{
+      if(view.id === "view-expenses" || view.id === "view-settings") return;   // улар аллақачон шундай
+      const viewId = view.id.replace("view-", "");
+      // 1) аввал ичидаги кичик бўлимлар (h3), сўнг 2) карточкалар
+      Array.from(view.querySelectorAll("*")).forEach(el=>{
+        if(Array.from(el.children).some(k=> k.tagName === "H3")) wrapSubsections(el, viewId);
+      });
+      Array.from(view.querySelectorAll(".card")).forEach(card=> makeCardCollapsible(card, viewId));
+    });
+  })();
+
   function initHelpTooltips(){
     document.body.addEventListener("click", e=>{
       const existing = document.querySelectorAll(".help-tip");
@@ -5065,6 +5147,8 @@ ${XL_PAGE}
       return;
     }
     const btn = document.getElementById("pivotShareBtn");
+    const pivotCard = el.closest(".card");
+    if(pivotCard && !pivotCard.classList.contains("open")) pivotCard.classList.add("open");   // ёпиқ бўлса расм бўш чиқмасин
     btn.disabled = true;
     toast("Расм тайёрланмоқда...");
     // html2canvas "overflow:auto" (сурилувчи) қутиларнинг фақат кўринадиган
