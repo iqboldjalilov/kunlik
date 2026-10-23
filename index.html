@@ -1821,7 +1821,13 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { fmt, fmtDate, esc, normDriver, simpleHash, localDateStr, addMonthsISO, fmtUsd, somOfUsd } from "./js/core/utils.js";
+import { buildCreditSchedule } from "./js/calc/credit.js";
+import { sumToWordsUz } from "./js/core/numtext.js";
+
+// ES2017 мослиги учун: элемент бўлса — ҳодисани улайди, бўлмаса — ҳеч нарса (eski brauzerlarda ?. ишламайди)
+function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
 (function(){
   "use strict";
 
@@ -2623,20 +2629,7 @@
     const arrow = val>=0 ? `<span class="arrow-up">▲</span>` : `<span class="arrow-down">▼</span>`;
     return `${arrow} ${fmt(val)}`;
   }
-  function esc(v){
-    return String(v ?? "").replace(/[&<>"']/g, m => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-    }[m]));
-  }
-  function normDriver(name){
-    return String(name || "").trim().replace(/\s+/g, " ");
-  }
 
-  function simpleHash(str){
-    let h = 0;
-    for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i)) >>> 0; }
-    return h.toString(36);
-  }
 
   let editGrantedUntil = 0;
   function editGraceMs(){
@@ -2644,18 +2637,61 @@
     const min = v === null ? 15 : Number(v);
     return min * 60 * 1000;
   }
-  function requirePasswordThen(callback){
+  async function requirePasswordThen(callback){
     const hash = getPwHash();
     if(!hash){ callback(); return; }
     if(Date.now() < editGrantedUntil){ callback(); return; }
-    const pw = prompt("Таҳрирлаш учун паролни киритинг:");
-    if(pw === null) return;
-    if(simpleHash(pw) === hash){
+    const r = await askInPage({ title:"Парол", message:"Таҳрирлаш учун паролни киритинг", okText:"Тасдиқлаш",
+      fields:[{ label:"Парол", type:"password", center:true }] });
+    if(r === null) return;
+    if(simpleHash(r[0]) === hash){
       const g = editGraceMs();
       if(g > 0) editGrantedUntil = Date.now() + g;
       callback();
     }
-    else { alert("Парол нотўғри."); }
+    else { customAlert("Парол нотўғри."); }
+  }
+
+  // ---- Дастурнинг ўз киритиш ойнаси (браузернинг prompt() ўрнига — автомашина браузерида ҳам ишлайди) ----
+  // opts: {title, message, fields:[{label,type,inputmode,maxlength,center}], okText, cancelText, validate(values)->string}
+  // Қайтаради: киритилган қийматлар массиви ёки бекор қилинганда null.
+  function askInPage(opts){
+    return new Promise(resolve=>{
+      const ov = document.createElement("div");
+      ov.style.cssText = "position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(10,20,35,.72);z-index:10050;display:flex;align-items:center;justify-content:center;padding:16px;";
+      const box = document.createElement("div");
+      box.style.cssText = "background:var(--card);color:var(--ink);border-radius:14px;padding:22px 20px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.4);";
+      const fieldsHtml = (opts.fields || []).map(f=>
+        `<label style="display:block;margin:0 0 4px;font-weight:600;font-size:13px;">${esc(f.label || "")}</label>` +
+        `<input type="${esc(f.type || "text")}" inputmode="${esc(f.inputmode || "text")}" maxlength="${Number(f.maxlength || 64)}" autocomplete="off" ` +
+        `style="width:100%;margin-bottom:12px;font-size:18px;letter-spacing:${f.center ? 3 : 0}px;text-align:${f.center ? "center" : "left"};">`
+      ).join("");
+      box.innerHTML =
+        `<h3 style="margin:0 0 6px;font-size:17px;">${esc(opts.title || "")}</h3>` +
+        (opts.message ? `<p style="margin:0 0 14px;font-size:13.5px;color:var(--muted);">${esc(opts.message)}</p>` : "") +
+        fieldsHtml +
+        `<div style="display:flex;gap:8px;margin-top:6px;">` +
+          `<button type="button" data-cancel class="btn outline" style="flex:1;">${esc(opts.cancelText || "Бекор қилиш")}</button>` +
+          `<button type="button" data-ok class="btn gold" style="flex:1;">${esc(opts.okText || "OK")}</button>` +
+        `</div>` +
+        `<div data-err style="color:var(--bad);font-size:13px;min-height:18px;margin-top:8px;"></div>`;
+      ov.appendChild(box);
+      document.body.appendChild(ov);
+      const inputs = Array.from(box.querySelectorAll("input"));
+      const finish = val => { ov.remove(); resolve(val); };
+      const submit = ()=>{
+        const vals = inputs.map(i=> i.value);
+        const err = opts.validate ? opts.validate(vals) : "";
+        if(err){ box.querySelector("[data-err]").textContent = err; return; }
+        finish(vals);
+      };
+      box.querySelector("[data-ok]").addEventListener("click", submit);
+      box.querySelector("[data-cancel]").addEventListener("click", ()=> finish(null));
+      inputs.forEach((inp, i)=> inp.addEventListener("keydown", e=>{
+        if(e.key === "Enter"){ if(i < inputs.length - 1) inputs[i + 1].focus(); else submit(); }
+      }));
+      setTimeout(()=>{ if(inputs[0]) inputs[0].focus(); }, 50);
+    });
   }
 
   function loadAudit(){
@@ -2825,20 +2861,8 @@
     }, 500);
   }
 
-  function localDateStr(d){
-    d = d || new Date();
-    return d.getFullYear() + "-" +
-           String(d.getMonth()+1).padStart(2,"0") + "-" +
-           String(d.getDate()).padStart(2,"0");
-  }
 
-  function fmtDate(iso){
-    if(!iso) return "";
-    const p = String(iso).slice(0,10).split("-");
-    return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : String(iso);
-  }
 
-  const fmt = n => Number(n||0).toLocaleString("ru-RU");
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 
   function toast(msg){
@@ -3221,7 +3245,7 @@
   });
 
   ["f_sana","f_mashina"].forEach(id=>{
-    document.getElementById(id)?.addEventListener("change", renderDupHint);
+    kh_on(document.getElementById(id), "change", renderDupHint);
   });
 
   document.getElementById("cancelEditBtn").addEventListener("click", ()=>{
@@ -3669,7 +3693,7 @@
   </WorksheetOptions>`;
 
   function xmlEscape(v){
-    return String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    return String((v == null ? "" : v)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
   function cellS(text){ return `<Cell><Data ss:Type="String">${xmlEscape(text)}</Data></Cell>`; }
   function cellN(num){ return `<Cell ss:StyleID="num"><Data ss:Type="Number">${Number(num||0)}</Data></Cell>`; }
@@ -6496,28 +6520,30 @@ ${XL_PAGE}
     if(!sent) return;
     toast("Тасдиқлаш коди Telegram'га юборилди ✓");
 
-    const entered = prompt("Telegram'га юборилган 6 хонали тасдиқлаш кодини киритинг:");
-    if(entered === null) return;
+    const rc = await askInPage({ title:"Тасдиқлаш коди", message:"Telegram'га юборилган 6 хонали кодни киритинг",
+      okText:"Тасдиқлаш", fields:[{ label:"Код", type:"text", inputmode:"numeric", maxlength:6, center:true }],
+      validate: v=> /^\d{6}$/.test(v[0].trim()) ? "" : "6 та рақам киритинг" });
+    if(rc === null) return;
+    const entered = rc[0];
 
     const resetRaw = localStorage.getItem(LS_PWRESET);
     const reset = resetRaw ? JSON.parse(resetRaw) : null;
     if(!reset || Date.now() > reset.expiresAt){
-      alert("Код муддати тугаган. Илтимос, қайта уриниб кўринг.");
+      customAlert("Код муддати тугаган. Илтимос, қайта уриниб кўринг.");
       localStorage.removeItem(LS_PWRESET);
       return;
     }
     if(simpleHash(entered.trim()) !== reset.hash){
-      alert("Код нотўғри. Илтимос, қайта уриниб кўринг.");
+      customAlert("Код нотўғри. Илтимос, қайта уриниб кўринг.");
       return;
     }
     localStorage.removeItem(LS_PWRESET);
 
-    const pw1 = prompt("Тасдиқланди ✓ Энди янги парол киритинг (камида 4 та белги):");
-    if(pw1 === null) return;
-    if(pw1.trim().length < 4){ alert("Парол камида 4 та белгидан иборат бўлиши керак."); return; }
-    const pw2 = prompt("Янги паролни такрорланг:");
-    if(pw2 === null) return;
-    if(pw1 !== pw2){ alert("Пароллар мос келмади. Қайта уриниб кўринг."); return; }
+    const rp = await askInPage({ title:"Янги парол", message:"Код тасдиқланди ✓ Камида 4 та белги",
+      okText:"Сақлаш", fields:[{ label:"Янги парол", type:"password" }, { label:"Паролни такрорланг", type:"password" }],
+      validate: v=> v[0].trim().length < 4 ? "Парол камида 4 та белгидан иборат бўлиши керак" : (v[0] !== v[1] ? "Пароллар мос келмади" : "") });
+    if(rp === null) return;
+    const pw1 = rp[0];
 
     localStorage.setItem(LS_PW, simpleHash(pw1));
     refreshPwStatus();
@@ -6528,27 +6554,26 @@ ${XL_PAGE}
     document.getElementById("lockScreen").classList.add("hidden");
   });
 
-  document.getElementById("setPwBtn").addEventListener("click", ()=>{
-    const pw1 = prompt("Янги парол киритинг (камида 4 та белги):");
-    if(pw1 === null) return;
-    if(pw1.trim().length < 4){ alert("Парол камида 4 та белгидан иборат бўлиши керак."); return; }
-    const pw2 = prompt("Паролни такрорланг:");
-    if(pw2 === null) return;
-    if(pw1 !== pw2){ alert("Пароллар мос келмади. Қайта уриниб кўринг."); return; }
-    localStorage.setItem(LS_PW, simpleHash(pw1));
+  document.getElementById("setPwBtn").addEventListener("click", async ()=>{
+    const r = await askInPage({ title:"Янги парол", message:"Камида 4 та белги", okText:"Сақлаш",
+      fields:[{ label:"Янги парол", type:"password" }, { label:"Паролни такрорланг", type:"password" }],
+      validate: v=> v[0].trim().length < 4 ? "Парол камида 4 та белгидан иборат бўлиши керак" : (v[0] !== v[1] ? "Пароллар мос келмади" : "") });
+    if(r === null) return;
+    localStorage.setItem(LS_PW, simpleHash(r[0]));
     refreshPwStatus();
     toast("Парол ўрнатилди ✓");
   });
-  document.getElementById("removePwBtn").addEventListener("click", ()=>{
+  document.getElementById("removePwBtn").addEventListener("click", async ()=>{
     if(!getPwHash()){ toast("Парол ўрнатилмаган"); return; }
-    const pw = prompt("Ўчириш учун жорий паролни киритинг:");
-    if(pw === null) return;
-    if(simpleHash(pw) !== getPwHash()){ alert("Парол нотўғри."); return; }
+    const r = await askInPage({ title:"Паролни ўчириш", message:"Ўчириш учун жорий паролни киритинг", okText:"Ўчириш",
+      fields:[{ label:"Жорий парол", type:"password" }] });
+    if(r === null) return;
+    if(simpleHash(r[0]) !== getPwHash()){ customAlert("Парол нотўғри."); return; }
     localStorage.removeItem(LS_PW);
     refreshPwStatus();
     toast("Парол ўчирилди ✓");
   });
-  const LS_EXPENSES = "kh_expenses_v1";
+    const LS_EXPENSES = "kh_expenses_v1";
   const LS_EXPENSE_PAYMENTS = "kh_expense_payments_v1";
   function loadExpenses(){
     try{ return JSON.parse(localStorage.getItem(LS_EXPENSES)) || []; }catch(e){ return []; }
@@ -6682,7 +6707,7 @@ ${XL_PAGE}
 
   function updateExpensePaymentPreview(){
     const sel = document.getElementById("ep_expense");
-    const amount = Number(document.getElementById("ep_summa")?.value||0);
+    const amount = Number((document.getElementById("ep_summa")||{}).value||0);
     const info = document.getElementById("ep_qoldiqPreview");
     if(!sel || !info) return;
     const x = expenses.find(e=>e.id===sel.value);
@@ -6757,9 +6782,9 @@ ${XL_PAGE}
     });
   }
 
-  document.getElementById("ep_expense")?.addEventListener("change", updateExpensePaymentPreview);
-  document.getElementById("ep_summa")?.addEventListener("input", updateExpensePaymentPreview);
-  document.getElementById("ep_sana")?.addEventListener("change", updateExpensePaymentPreview);
+  kh_on(document.getElementById("ep_expense"), "change", updateExpensePaymentPreview);
+  kh_on(document.getElementById("ep_summa"), "input", updateExpensePaymentPreview);
+  kh_on(document.getElementById("ep_sana"), "change", updateExpensePaymentPreview);
 
   function openExpensesFor(mashina){
     return expenses
@@ -6814,17 +6839,17 @@ ${XL_PAGE}
           Суммани камайтиринг ёки янги харажат киритинг.</div>` : ""}`;
   }
 
-  document.getElementById("ep_mode")?.addEventListener("change", ()=>{
+  kh_on(document.getElementById("ep_mode"), "change", ()=>{
     const manual = document.getElementById("ep_mode").value === "manual";
     document.getElementById("ep_expenseWrap").style.display = manual ? "" : "none";
     document.getElementById("ep_expense").required = manual;
     renderAutoPreview();
     updateEpQoldiqPreview();
   });
-  document.getElementById("ep_mashina")?.addEventListener("change", ()=>{
+  kh_on(document.getElementById("ep_mashina"), "change", ()=>{
     renderAutoPreview(); updateEpQoldiqPreview();
   });
-  document.getElementById("ep_summa")?.addEventListener("input", renderAutoPreview);
+  kh_on(document.getElementById("ep_summa"), "input", renderAutoPreview);
 
   function updateEpQoldiqPreview(){
     const el = document.getElementById("ep_qoldiqPreview");
@@ -6837,7 +6862,7 @@ ${XL_PAGE}
       : "Бу автомобилда қопланмаган харажат йўқ.";
   }
 
-  document.getElementById("expensePaymentForm")?.addEventListener("submit", async e=>{
+  kh_on(document.getElementById("expensePaymentForm"), "submit", async e=>{
     e.preventDefault();
     const mode = document.getElementById("ep_mode").value;
     const mashina = document.getElementById("ep_mashina").value;
@@ -6944,7 +6969,7 @@ ${XL_PAGE}
   document.getElementById("searchExpenses").addEventListener("input", renderExpenses);
   // «📅 Барча ойлар»: ой майдони тозаланади → барча ойларнинг харажатлари кўринади.
   // Яна босилса — жорий ойга қайтади.
-  document.getElementById("expAllMonthsBtn")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("expAllMonthsBtn"), "click", ()=>{
     const m = document.getElementById("expenseMonth");
     m.value = m.value ? "" : currentMonthValueExp();
     renderExpenses();
@@ -7261,11 +7286,11 @@ ${XL_PAGE}
       renderAgentsList();
     }));
   }
-  document.getElementById("addAgentBtn")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("addAgentBtn"), "click", ()=>{
     agents.push({name:"Янги агент", pin:"", active:true});
     renderAgentsList();
   });
-  document.getElementById("saveAgentsBtn")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("saveAgentsBtn"), "click", ()=>{
     const rows = document.querySelectorAll("#agentsList .settings-row");
     const list = Array.from(rows).map((row,i)=>{
       const g = f => row.querySelector(`[data-afield="${f}"]`).value.trim();
@@ -7371,7 +7396,7 @@ ${XL_PAGE}
       });
     });
   }
-  document.getElementById("runDupCheckBtn")?.addEventListener("click", renderDupCheck);
+  kh_on(document.getElementById("runDupCheckBtn"), "click", renderDupCheck);
 
   /* =========================================================
      ТИЗИМНИ ТЕКШИРИШ: ҳақиқий маълумотга ТЕГМАСДАН, синов
@@ -7576,7 +7601,7 @@ ${XL_PAGE}
         </div>`;
     }, 50);
   }
-  document.getElementById("runSystemCheckBtn")?.addEventListener("click", renderSystemCheckResult);
+  kh_on(document.getElementById("runSystemCheckBtn"), "click", renderSystemCheckResult);
 
   const LS_AGENT_FIELDS = "kh_agent_fields_v1";
   const AGENT_FIELD_DEFS = [
@@ -7617,39 +7642,9 @@ ${XL_PAGE}
   let calcRefreshHook = null;   // ҳисоблагич ойнаси очиқ бўлса, маълумот янгиланганда уни қайта чизади
 
   // Санага n ой қўшиш (ой охиридан ошмайди: 31.01 + 1 ой = 28.02)
-  function addMonthsISO(iso, n){
-    const p = String(iso || "").slice(0,10).split("-").map(Number);
-    if(p.length !== 3 || p.some(isNaN)) return "";
-    const total = p[1] - 1 + n;
-    const y = p[0] + Math.floor(total / 12);
-    const m0 = ((total % 12) + 12) % 12;
-    const d = Math.min(p[2], new Date(y, m0 + 1, 0).getDate());
-    return y + "-" + String(m0 + 1).padStart(2,"0") + "-" + String(d).padStart(2,"0");
-  }
 
   // Тўлов жадвали. type: "annuitet" (ҳар ой бир хил) ёки "differensial" (асосий қарз тенг, фоиз камаяди).
   // Барча суммалар бутун сўмга юмалоқланади, охирги ой қолдиқни ёпади (жами асосий қарз аниқ P га тенг).
-  function buildCreditSchedule(p){
-    const n = Math.max(1, Math.round(p.months));
-    const P = Math.max(0, Math.round(p.principal));
-    const r = Number(p.rate || 0) / 100 / 12;
-    const first = /^\d{4}-\d{2}-\d{2}$/.test(p.firstDate || "") ? p.firstDate : localDateStr();
-    const annuity = p.type === "differensial" ? 0
-      : Math.round(r === 0 ? P / n : P * r / (1 - Math.pow(1 + r, -n)));
-    const baseAsosiy = Math.round(P / n);
-    const rows = [];
-    let balance = P;
-    for(let i = 1; i <= n; i++){
-      const foiz = Math.round(balance * r);
-      let asosiy;
-      if(i === n) asosiy = balance;
-      else if(p.type === "differensial") asosiy = Math.min(baseAsosiy, balance);
-      else asosiy = Math.max(0, Math.min(annuity - foiz, balance));
-      rows.push({ n:i, sana: addMonthsISO(first, i - 1), tolov: asosiy + foiz, asosiy, foiz, qoldiq: balance - asosiy });
-      balance -= asosiy;
-    }
-    return rows;
-  }
 
   // Шартнома ҳолати: жадвал + қилинган тўловлар. Тўловлар жадвалдаги ойларга КЕТМА-КЕТ тақсимланади
   // (биринчи ойдан бошлаб), шунда ҳар бир ой «тўланган / қисман / тўланмаган» деб кўринади.
@@ -7689,16 +7684,9 @@ ${XL_PAGE}
   // Сўм — бутун сўм; доллар — СЕНТ (1 $ = 100 сент). Шунда барча ҳисоб-китоб бутун сонларда қолади
   // (суза нуқтали хато чиқмайди), «валюта» белгиси йўқ эски шартномалар эса сўм ҳисобланади.
   const lzCur = c => (c && c.valyuta === "USD") ? "USD" : "UZS";
-  function fmtUsd(cents){
-    const n = Math.round(Number(cents) || 0);
-    const v = Math.abs(n);
-    const whole = String(Math.floor(v / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    return (n < 0 ? "-" : "") + whole + "." + String(v % 100).padStart(2, "0");
-  }
   const fmtMN = (v, cur) => cur === "USD" ? fmtUsd(v) : fmt(v);                    // жадвал катаклари учун (бирликсиз)
   const fmtMC = (v, cur) => cur === "USD" ? fmtUsd(v) + " $" : fmt(v);              // карточкалар учун
   const fmtMU = (v, cur) => cur === "USD" ? fmtUsd(v) + " $" : fmt(v) + " сўм";     // жумла ичида
-  const somOfUsd = (cents, kurs) => Math.round(Number(cents || 0) / 100 * Number(kurs || 0));
 
   // ---- Йиғма ойлик ҳисобот учун: лизинг бўлими ----
   // Ҳолат «ҳисобот санаси» бўйича: ой тугаган бўлса — ой охирига, тугамаган бўлса — бугунга.
@@ -7819,7 +7807,7 @@ ${XL_PAGE}
   }
   renderAgentFieldsList();
 
-  document.getElementById("saveAgentFieldsBtn")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("saveAgentFieldsBtn"), "click", ()=>{
     const o = {};
     document.querySelectorAll("[data-afkey]").forEach(cb=>{ o[cb.dataset.afkey] = cb.checked; });
     agentFields = Object.assign(defaultAgentFields(), o);
@@ -7902,7 +7890,7 @@ ${XL_PAGE}
         logAudit("Агент ёзувлари қабул қилинди", `${fresh.length} та ёзув`);
         renderEntryBanners();
         refreshActiveView();
-        toast(`Агентдан ${fresh.length} та янги ёзув келди ✓`);
+        toast(`Агентдан ${fresh.length} та янги ёзув · жами ${fmt(fresh.reduce((s,r)=> s + Number(r.tushum||0), 0))} сўм ✓`);
         announceNewAgentRecords(fresh);
       }
       // Ҳар доим ЖОРИЙ, тўлиқ inbox ҳолатини (эски + янги) булутга тасдиқлаб
@@ -7933,7 +7921,7 @@ ${XL_PAGE}
     sel._list = list;
   }
 
-  document.getElementById("agentModeBtn")?.addEventListener("click", openAgentLogin);
+  kh_on(document.getElementById("agentModeBtn"), "click", openAgentLogin);
 
   (function restoreAgentSession(){
     const name = sessionStorage.getItem("kh_agent");
@@ -7948,13 +7936,13 @@ ${XL_PAGE}
     document.getElementById("agentGreeting").textContent = "Салом, " + name + "!";
     initAgentPanel();
   })();
-  document.getElementById("agentBack")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("agentBack"), "click", ()=>{
     document.getElementById("agentLogin").style.display = "none";
     document.getElementById("mainApp").style.display = "";
     document.getElementById("lockScreen").style.display = "flex";
   });
 
-  document.getElementById("agentSubmit")?.addEventListener("click", async ()=>{
+  kh_on(document.getElementById("agentSubmit"), "click", async ()=>{
     const sel = document.getElementById("agentSelect");
     const name = sel.value;
     const pin = document.getElementById("agentPin").value.trim();
@@ -7976,7 +7964,7 @@ ${XL_PAGE}
     initAgentPanel();
   });
 
-  document.getElementById("agentExitBtn")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("agentExitBtn"), "click", ()=>{
     sessionStorage.removeItem("kh_agent");
     location.reload();
   });
@@ -8022,7 +8010,7 @@ ${XL_PAGE}
     renderAgentPivot();
   }
 
-  document.getElementById("agMoreToggle")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("agMoreToggle"), "click", ()=>{
     const w = document.getElementById("agMoreWrap");
     const t = document.getElementById("agMoreToggle");
     w.classList.toggle("hidden");
@@ -8042,10 +8030,10 @@ ${XL_PAGE}
     document.getElementById("agPreview").innerHTML = html;
   }
   ["ag_tushum","ag_yoqilgi","ag_yol","ag_boshqa","ag_topshirilgan"].forEach(id=>{
-    document.getElementById(id)?.addEventListener("input", agComputePreview);
+    kh_on(document.getElementById(id), "input", agComputePreview);
   });
 
-  document.getElementById("agentForm")?.addEventListener("submit", async e=>{
+  kh_on(document.getElementById("agentForm"), "submit", async e=>{
     e.preventDefault();
     if(!currentAgent) return;
     const btn = e.target.querySelector('button[type="submit"]');
@@ -8185,9 +8173,9 @@ ${XL_PAGE}
       body.innerHTML = `<tr><td colspan="7" class="empty">Рўйхатни юклаб бўлмади (интернет?).</td></tr>`;
     }
   }
-  document.getElementById("ag_sana")?.addEventListener("change", ()=>{ renderAgentToday(); renderAgentDupHint(); });
-  document.getElementById("ag_mashina")?.addEventListener("change", renderAgentDupHint);
-  document.getElementById("agTodayRefreshBtn")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("ag_sana"), "change", ()=>{ renderAgentToday(); renderAgentDupHint(); });
+  kh_on(document.getElementById("ag_mashina"), "change", renderAgentDupHint);
+  kh_on(document.getElementById("agTodayRefreshBtn"), "click", ()=>{
     agentDataCache = null;
     renderAgentToday();
     renderAgentPivot();
@@ -8411,11 +8399,11 @@ ${XL_PAGE}
     printHtmlBlock(html, "");
   }
 
-  document.getElementById("agPivotRefreshBtn")?.addEventListener("click", renderAgentPivot);
-  document.getElementById("agPivotExcelBtn")?.addEventListener("click", exportAgentPivotExcel);
-  document.getElementById("agPivotPdfBtn")?.addEventListener("click", exportAgentPivotPdf);
+  kh_on(document.getElementById("agPivotRefreshBtn"), "click", renderAgentPivot);
+  kh_on(document.getElementById("agPivotExcelBtn"), "click", exportAgentPivotExcel);
+  kh_on(document.getElementById("agPivotPdfBtn"), "click", exportAgentPivotPdf);
   ["agPivotMonth","agPivotMetric","agPivotUnit"].forEach(id=>{
-    document.getElementById(id)?.addEventListener("change", renderAgentPivot);
+    kh_on(document.getElementById(id), "change", renderAgentPivot);
   });
 
   // ===================== ҲИСОБЛАГИЧ (интерфейс): оддий + кредит/лизинг + валюта =====================
@@ -8435,7 +8423,7 @@ ${XL_PAGE}
     const LS_FX = "kh_fx_rate_v1";            // охирги ишлатилган доллар курси (фақат шу қурилмада)
 
     const parseNum = v => {
-      const s = String(v ?? "").replace(/[\s\u00A0]/g, "").replace(",", ".");
+      const s = String((v == null ? "" : v)).replace(/[\s\u00A0]/g, "").replace(",", ".");
       return s === "" ? NaN : Number(s);
     };
     const isOpen = () => overlay.classList.contains("show");
@@ -9324,7 +9312,7 @@ ${XL_PAGE}
       customAlert("Версияга қайтариб бўлмади: " + versionErrorText(e) + "\n\nМаълумотларингиз ўзгармади.");
     }
   }
-  document.getElementById("versionSaveNowBtn")?.addEventListener("click", async ()=>{
+  kh_on(document.getElementById("versionSaveNowBtn"), "click", async ()=>{
     if(!CLOUD.isReady()){ customAlert("Булут уланмаган."); return; }
     try{
       await CLOUD.createVersionNow("Қўлда сақланган");
@@ -9332,17 +9320,17 @@ ${XL_PAGE}
       renderVersionsList();
     }catch(e){ customAlert("Версияни сақлаб бўлмади: " + versionErrorText(e)); }
   });
-  document.getElementById("versionRefreshBtn")?.addEventListener("click", renderVersionsList);
-  document.querySelector("#versionsCard > h2")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("versionRefreshBtn"), "click", renderVersionsList);
+  kh_on(document.querySelector("#versionsCard > h2"), "click", ()=>{
     setTimeout(()=>{
       const card = document.getElementById("versionsCard");
       if(card && card.classList.contains("open")) renderVersionsList();
     }, 0);
   });
 
-  document.getElementById("cloudSyncNowBtn")?.addEventListener("click", ()=> CLOUD.uploadNow());
-  document.getElementById("cloudRestoreBtn")?.addEventListener("click", ()=> CLOUD.restoreNow());
-  document.getElementById("cloudAuthCheckBtn")?.addEventListener("click", ()=> CLOUD.debugAuthStatus());
+  kh_on(document.getElementById("cloudSyncNowBtn"), "click", ()=> CLOUD.uploadNow());
+  kh_on(document.getElementById("cloudRestoreBtn"), "click", ()=> CLOUD.restoreNow());
+  kh_on(document.getElementById("cloudAuthCheckBtn"), "click", ()=> CLOUD.debugAuthStatus());
   if(currentAgent){
     CLOUD.startReadOnly();
   }else{
@@ -9465,6 +9453,10 @@ ${XL_PAGE}
     } else {
       text = `Диққат. Агентдан янги ёзув келди.`;
     }
+    // Жами сумма (янги келган ёзувлар бўйича), ўзбекча сўз билан
+    const total = fresh.reduce((s,r)=> s + Number(r.tushum||0), 0);
+    const words = sumToWordsUz(total);
+    text += words !== null ? ` Жами тушум ${words} сўм.` : ` Жами тушум ${fmt(total)} сўм.`;
     playBeep();
     setTimeout(()=> speakText(text), 400);
   }
