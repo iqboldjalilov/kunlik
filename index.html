@@ -108,6 +108,13 @@
   .card.collapsible .chev2{font-size:13px;color:var(--muted);transition:transform .15s;flex:none;}
   .card.collapsible.open > h2 .chev2{transform:rotate(90deg);}
   .card.collapsible > .collapse-body{display:none;}
+  .subsec{margin-top:14px;}
+  .subsec > h3{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px;padding-top:12px;border-top:1px dashed var(--line);font-size:14.5px;}
+  .subsec > h3:hover{color:var(--gold);}
+  .subsec > h3 .chev2{font-size:12px;color:var(--muted);transition:transform .15s;flex:none;}
+  .subsec.open > h3 .chev2{transform:rotate(90deg);}
+  .subsec > .collapse-body{display:none;}
+  .subsec.open > .collapse-body{display:block;animation:fadeIn .2s ease;}
   .card.collapsible.open > .collapse-body{display:block;animation:fadeIn .2s ease;}
   .section-divider{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:26px 0 12px;padding-top:10px;border-top:1px dashed var(--line);}
   [data-theme="dark"] .more-toggle{color:#f3d98a;}
@@ -240,7 +247,7 @@
     .stat .value{font-size:19px;}
 
     #bottomMoreOverlay{
-      display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:490;
+      display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.35);z-index:490;
     }
     #bottomMoreOverlay.show{display:block;}
     #bottomMorePanel{
@@ -278,7 +285,7 @@
   }
   .calc-fab:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.32);}
   .calc-fab:active{transform:scale(.94);}
-  .calc-overlay{display:none;position:fixed;inset:0;background:rgba(15,36,64,.55);z-index:900;align-items:center;justify-content:center;padding:16px;animation:fadeIn .15s ease;}
+  .calc-overlay{display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(15,36,64,.55);z-index:900;align-items:center;justify-content:center;padding:16px;animation:fadeIn .15s ease;}
   .calc-overlay.show{display:flex;}
   .calc-box{background:var(--card);border-radius:var(--radius);width:100%;max-width:840px;max-height:92vh;display:flex;flex-direction:column;border:1px solid var(--line);box-shadow:var(--shadow-hover);overflow:hidden;}
   .calc-head{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);border-bottom:3px solid var(--gold);padding:10px 12px;}
@@ -327,8 +334,8 @@
 
   /* ---------- дастур услубидаги alert/confirm модаллари ---------- */
   .custom-modal-overlay{
-    display:none;position:fixed;inset:0;background:rgba(15,36,64,.55);
-    z-index:9700;align-items:center;justify-content:center;padding:20px;
+    display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(15,36,64,.55);
+    z-index:10040;align-items:center;justify-content:center;padding:20px;
     animation:fadeIn .15s ease;
   }
   .custom-modal-overlay.show{display:flex;}
@@ -350,7 +357,7 @@
   .custom-modal-foot{padding:0 18px 18px;text-align:right;}
   .custom-modal-foot-split{display:flex;gap:10px;justify-content:flex-end;}
   #lockScreen{
-    position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);
+    position:fixed;top:0;right:0;bottom:0;left:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);
     z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;
     color:#fff;padding:20px;
   }
@@ -518,7 +525,7 @@
   </div>
 </div>
 
-<div id="agentLogin" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);z-index:9998;align-items:center;justify-content:center;padding:20px;">
+<div id="agentLogin" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);z-index:9998;align-items:center;justify-content:center;padding:20px;">
   <div class="lockbox">
     <div class="mark">👤</div>
     <h2>Агент кириши</h2>
@@ -533,7 +540,7 @@
   </div>
 </div>
 
-<div id="exitScreen" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);z-index:9999;align-items:center;justify-content:center;flex-direction:column;color:#fff;padding:20px;">
+<div id="exitScreen" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);z-index:9999;align-items:center;justify-content:center;flex-direction:column;color:#fff;padding:20px;">
   <div class="lockbox">
     <div class="mark">К</div>
     <h2>Чиқилди</h2>
@@ -555,7 +562,7 @@
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <div id="agentClock" style="color:#e7ecf5;font-size:13px;font-variant-numeric:tabular-nums;background:rgba(255,255,255,.08);padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);"></div>
       <span id="agentCloudDot" style="font-size:13px;color:#e7ecf5;"></span>
-      <button id="agentExitBtn" style="background:transparent;border:1px solid rgba(255,120,100,.5);color:#ffb4a3;padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;">⏻ Чиқиш</button>
+      <button id="agentExitBtn" style="background:transparent;border:1px solid rgba(255,120,100,.5);color:#ffb4a3;padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;">Чиқиш</button>
     </div>
   </header>
   <main>
@@ -653,7 +660,7 @@
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
     <div id="liveClock" style="color:#e7ecf5;font-size:13px;font-variant-numeric:tabular-nums;background:rgba(255,255,255,.08);padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);"></div>
     <button id="themeToggle" title="Қоронғи/ёруғ режим">🌙</button>
-    <button id="exitBtn" style="background:transparent;border:1px solid rgba(255,120,100,.5);color:#ffb4a3;padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;">⏻ Чиқиш</button>
+    <button id="exitBtn" style="background:transparent;border:1px solid rgba(255,120,100,.5);color:#ffb4a3;padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;">Чиқиш</button>
   </div>
   <nav>
     <button data-view="dashboard">Дашборд</button>
@@ -1575,7 +1582,7 @@
         <div class="full">
           <p style="font-size:12.5px;color:var(--muted);margin:0;">
             <b>Паролни қайта сўрамаслик муддати</b> — шу муддат давомида дастурни қайта очганда парол сўралмайди
-            (телефонда илова фонга ўтиб қайтганда ҳам). «⏻ Чиқиш» тугмаси босилса ёки автомат қулфлаш ишласа —
+            (телефонда илова фонга ўтиб қайтганда ҳам). «Чиқиш» тугмаси босилса ёки автомат қулфлаш ишласа —
             муддат бекор бўлади ва парол қайтадан сўралади.
           </p>
         </div>
@@ -1814,7 +1821,13 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { fmt, fmtDate, esc, normDriver, simpleHash, localDateStr, addMonthsISO, fmtUsd, somOfUsd } from "./js/core/utils.js";
+import { buildCreditSchedule } from "./js/calc/credit.js";
+import { sumToWordsUz } from "./js/core/numtext.js";
+
+// ES2017 мослиги учун: элемент бўлса — ҳодисани улайди, бўлмаса — ҳеч нарса (eski brauzerlarda ?. ишламайди)
+function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
 (function(){
   "use strict";
 
@@ -1931,6 +1944,47 @@
     const CHUNK_SIZE = 300000;
     const LS_LASTSYNC = "kh_lastsync_v1";
     const LS_DEVICE   = "kh_deviceid_v1";
+    // Синхронлаш ҳолати — ҲАР қурилмага хос, булутга ЧИҚМАЙДИ (SYNC_KEYS'да йўқ).
+    // LS_DIRTY: булутга етмаган маҳаллий ўзгариш бор (қиймат — ҳисоблагич, вақт эмас).
+    // LS_BASEREV: булутнинг қайси версия рақамини кўриб, шу билан келишган охирги ҳолат.
+    const LS_DIRTY    = "kh_dirty_v1";
+    const LS_BASEREV  = "kh_baserev_v1";
+    let syncConflict  = null;      // {cloudRev} — булут ва маҳаллий ўзгариш тўқнашганда; ҳал қилинмагунча ҳеч нарса устига ёзилмайди
+    let resyncRequested = false;   // сақлаш давом этаётганда яна сўров келса — тугагач такрорлаш
+    const cloudRevOf = meta => Number((meta && meta.rev) || 0);
+    const baseRev = () => { const v = localStorage.getItem(LS_BASEREV); return v === null ? null : Number(v); };
+    const setBaseRev = r => localStorage.setItem(LS_BASEREV, String(r));
+    const isDirty = () => localStorage.getItem(LS_DIRTY) !== null;
+    function markLocalChange(){
+      const n = Number(localStorage.getItem(LS_DIRTY) || 0) + 1;
+      localStorage.setItem(LS_DIRTY, String(n));
+    }
+    // Бизнес маълумот борми (бўш қурилма булутдаги маълумотни ўчирмаслиги учун)
+    function localHasBusinessData(){
+      return BUSINESS_DATA_KEYS.some(d=>{
+        try{ const a = JSON.parse(localStorage.getItem(d.storageKey) || "[]"); return Array.isArray(a) && a.length > 0; }
+        catch(e){ return false; }
+      });
+    }
+    // Маҳаллий ва булут ҳолати бир хилми (барча синхрон калитлар бўйича)
+    function sameAsCloud(cloudData){
+      return SYNC_KEYS.every(k=>{
+        const isBiz = BUSINESS_DATA_KEYS.some(d=> d.storageKey === k);
+        const norm = raw => {
+          if(raw === undefined || raw === null) return isBiz ? "[]" : "";
+          if(!isBiz) return String(raw);
+          try{ return JSON.stringify(JSON.parse(raw)); }catch(e){ return String(raw); }
+        };
+        return norm(localStorage.getItem(k)) === norm(cloudData[k]);
+      });
+    }
+    const getConflict = () => syncConflict;
+    function setConflict(c){
+      syncConflict = c || null;
+      if(syncConflict) setStatus("⚠ Қарама-қаршилик — маълумотни танланг", "var(--bad)");
+      else if(ready) setStatus("Уланган ✓", "var(--good)");
+      if(typeof renderEntryBanners === "function") renderEntryBanners();
+    }
     const LS_LASTVER  = "kh_lastver_v1";            // ҳар қурилмага хос (синхронланмайди)
     const VERSION_MIN_GAP = 2*60*60*1000;           // автомат версиялар орасида камида 2 соат
     const VERSION_KEEP = 30;                         // охирги нечта версия сақланади
@@ -2009,72 +2063,84 @@
       el.textContent = fmtDate(localDateStr(d)) + " " + d.toLocaleTimeString("uz-UZ");
     }
 
-    async function upload(silent, force){
-      // Агент қурилмаси ҳеч қачон умумий базага ёзмайди — фақат ўз ёзувини
-      // "inbox" орқали юборади.
-      if(agentMode) return false;
-      if(!ready || syncing) return false;
+    // Булутга ёзиш. Булут рақами кутилганга мос бўлсагина ёзилади (транзакция) — иккала қурилма
+    // бир пайтда ёзса ҳам бири иккинчисини босиб кетмайди. Мос келмаса — ҳолат қайта баҳоланади.
+    // force: текширувсиз (фақат версиядан тиклашдан кейин); expectRev: аниқ кутилган рақам.
+    async function upload(silent, force, expectRev){
+      if(agentMode) return false;                  // агент умумий базага ЁЗМАЙДИ
+      if(!ready) return false;
+      if(!force && syncConflict){                  // зиддият ҳал бўлмагунча устига ёзмаймиз
+        if(!silent) toast("Аввал булут билан қарама-қаршиликни ҳал қилинг");
+        return false;
+      }
+      if(syncing){ resyncRequested = true; return false; }
       syncing = true;
       await ensureAuth();
+      const seqAtStart = localStorage.getItem(LS_DIRTY);
+      let ok = false, needReread = false;
       try{
         setStatus("Сақланмоқда...");
-
-        // ⚠️ БУЛУТ АСОСИЙ МАНБА: юклашдан олдин булутда бошқа қурилма ёзиб
-        // кетмаганини текширамиз. Агар булут бизникидан янгироқ бўлса —
-        // ўзимизникини УСТИГА ЁЗМАЙМИЗ, аввал ўзимиз булутдагини тортиб оламиз.
-        try{
-          const cur = await db.collection(COLL_BACKUP).doc(DOC_MAIN).get();
-          if(cur.exists && !force){
-            const meta = cur.data();
-            const mySync = Number(localStorage.getItem(LS_LASTSYNC) || 0);
-            if(meta.device !== deviceId() && (meta.updatedAt||0) > mySync + 1000){
-              setStatus("Булутдан янгиланмоқда...", "var(--gold)");
-              await restore();
-              syncing = false;
-              softRefreshAfterRestore();
-              return false;
-            }
-          }
-        }catch(e){ /* текширув имкони бўлмаса — давом этамиз */ }
-
         const payload = collectLocal();
         const chunks = [];
         for(let i=0;i<payload.length;i+=CHUNK_SIZE) chunks.push(payload.slice(i,i+CHUNK_SIZE));
-        const now = Date.now();
-        let prevCount = 0;
-        try{
-          const prev = await db.collection(COLL_BACKUP).doc(DOC_MAIN).get();
-          if(prev.exists) prevCount = prev.data().chunkCount || 0;
-        }catch(e){}
-        const batch = db.batch();
-        chunks.forEach((c,i)=> batch.set(db.collection(COLL_BACKUP).doc("chunk_"+i), {data:c}));
-        for(let i=chunks.length;i<prevCount;i++) batch.delete(db.collection(COLL_BACKUP).doc("chunk_"+i));
-        batch.set(db.collection(COLL_BACKUP).doc(DOC_MAIN), {
-          updatedAt: now, chunkCount: chunks.length, sizeBytes: payload.length, device: deviceId()
+        const base = baseRev();
+        const expected = expectRev !== undefined ? expectRev : (base === null ? 0 : base);
+        let newRev = 0;
+        await db.runTransaction(async tx=>{
+          const mainRef = db.collection(COLL_BACKUP).doc(DOC_MAIN);
+          const cur = await tx.get(mainRef);
+          // Булутда ҳеч нарса бўлмаса — маҳаллийни юклаймиз; бўлса — рақам кутилганга мос бўлиши шарт
+          const curRev = cur.exists ? cloudRevOf(cur.data()) : 0;
+          if(cur.exists && !force && curRev !== expected){
+            const err = new Error("REV_CONFLICT"); err.code = "REV_CONFLICT"; throw err;
+          }
+          newRev = curRev + 1;
+          const prevCount = cur.exists ? (cur.data().chunkCount || 0) : 0;
+          chunks.forEach((ch,i)=> tx.set(db.collection(COLL_BACKUP).doc("chunk_"+i), {data:ch}));
+          for(let i=chunks.length;i<prevCount;i++) tx.delete(db.collection(COLL_BACKUP).doc("chunk_"+i));
+          tx.set(mainRef, { updatedAt: Date.now(), chunkCount: chunks.length, sizeBytes: payload.length, device: deviceId(), rev: newRev });
         });
-        await batch.commit();
-        localStorage.setItem(LS_LASTSYNC, String(now));
-        const warnEl = document.getElementById("cloudConflictWarn");
-        if(warnEl){ warnEl.style.display = "none"; warnEl.innerHTML = ""; }
+        setBaseRev(newRev);
+        // Агар юклаш давомида янги ўзгариш бўлмаган бўлса — белгини олиб ташлаймиз
+        if(localStorage.getItem(LS_DIRTY) === seqAtStart) localStorage.removeItem(LS_DIRTY);
+        localStorage.setItem(LS_LASTSYNC, String(Date.now()));
+        if(syncConflict) setConflict(null);
         setStatus("Сақланди ✓", "var(--good)");
-        setLastSyncLabel(now);
+        setLastSyncLabel(Date.now());
         if(!silent) toast("Булутга сақланди ✓");
-        // Версиялар тарихи: керак бўлса (2 соатдан ошган бўлса) янги версия оламиз.
-        // Бу юклашнинг ЎЗИНИ кечиктирмайди ва хато берса ҳам юклашга таъсир қилмайди.
+        // Версиялар тарихи: керак бўлса янги версия (хато юкланишга таъсир қилмайди)
         maybeCreateVersion(payload).catch(e=> console.warn("Версия сақланмади:", e && e.message));
-        return true;
+        ok = true;
       }catch(e){
-        console.error("Булутга сақлашда хато:", e);
-        setStatus("Сақланмади (офлайн?)", "var(--bad)");
-        if(!silent) toast("Булутга сақлаб бўлмади — интернетни текширинг");
-        return false;
+        if(e && e.code === "REV_CONFLICT"){ needReread = true; }
+        else{
+          console.error("Булутга сақлашда хато:", e);
+          setStatus("Сақланмади (офлайн?)", "var(--bad)");
+          if(!silent) toast("Булутга сақлаб бўлмади — интернетни текширинг");
+        }
       }finally{ syncing = false; }
+      if(needReread){
+        resyncRequested = false;
+        // Булут бу пайтда бошқа қурилма томонидан ўзгарган — ҳолатни қайта текширамиз (устига ёзмаймиз)
+        try{
+          const m = await db.collection(COLL_BACKUP).doc(DOC_MAIN).get();
+          if(m.exists) await reconcile(m.data());
+        }catch(e){ setStatus("Уланмади (офлайн?)", "var(--bad)"); }
+      } else if(resyncRequested){
+        // Кутилаётган сўров фақат ҳали ҳам булутга етмаган ўзгариш бўлса бажарилади —
+        // юклаш аллақачон барча ўзгаришни олган бўлса, ортиқча ёзув килинмайди
+        resyncRequested = false;
+        if(isDirty()) scheduleUpload();
+      }
+      return ok;
     }
 
     function scheduleUpload(){
       if(agentMode || !ready) return;
       clearTimeout(syncTimer);
-      syncTimer = setTimeout(()=> upload(true), 900);
+      // Таймер фақат ҳақиқатан булутга етмаган ўзгариш бўлса юклайди (бошқа йўл билан аллақачон
+      // юкланган бўлса — ортиқча ёзув қилинмайди)
+      syncTimer = setTimeout(()=>{ if(isDirty()) upload(true); }, 900);
     }
 
     async function fetchCloud(){
@@ -2118,9 +2184,13 @@
             if(cloud.data[k] !== undefined) localStorage.setItem(k, cloud.data[k]);
             else if(localStorage.getItem(k) !== null) localOnly = true;
           });
-          localStorage.setItem(LS_LASTSYNC, String(cloud.meta.updatedAt || Date.now()));
+          localStorage.setItem(LS_LASTSYNC, String(Date.now()));
+          // Булут нусхасини қабул қилдик: база янгиланади, маҳаллий ўзгариш белгиси олиб ташланади
+          setBaseRev(cloudRevOf(cloud.meta));
+          localStorage.removeItem(LS_DIRTY);
         }finally{ restoring = false; }
-        if(localOnly) scheduleUpload();
+        // Булутда йўқ, маҳаллий бор маълумот бўлса — уни булутга чиқариш учун ўзгариш сифатида белгилаймиз
+        if(localOnly){ markLocalChange(); scheduleUpload(); }
         return true;
       }catch(e){
         console.error(e); toast("Тиклаб бўлмади"); return false;
@@ -2363,27 +2433,85 @@
       return d.exists ? (d.data().list || []) : null;
     }
 
+    // Булут ҳолатини маҳаллий ҳолат билан солиштириб, тўғри қарорни қабул қилади.
+    // Қоида (соат эмас, версия рақами ва ўзгариш белгиси асосида):
+    //  • булут ўзгармаган → маҳаллий ўзгариш бўлса юклаймиз, бўлмаса ҳеч нарса;
+    //  • булут ўзгарган, маҳаллий ўзгариш ЙЎҚ → булутдан оламиз (автоматик);
+    //  • булут ўзгарган ВА маҳаллий ўзгариш бор → ЗИДДИЯТ: ҳеч нарса ўчирилмайди, фойдаланувчи танлайди.
+    async function reconcile(meta){
+      if(agentMode || !ready) return false;
+      const cloudRev = cloudRevOf(meta);
+      const base = baseRev();
+      if(base !== null && cloudRev === base){
+        if(isDirty()) return upload(true);
+        setStatus("Уланган ✓", "var(--good)");
+        return false;
+      }
+      // Тез-тез ўзгариш ҳимояси: булут минутига кўп марта ўзгарса, текширув ҳам вақтинча тўхтатилади
+      if(!autoRestoreAllowed()) return false;
+      const cloud = await fetchCloud();
+      if(!cloud) return false;
+      if(sameAsCloud(cloud.data)){
+        // Мазмун бир хил — булутда ҳамма ўзгариш аллақачон бор: база янгиланади, белги олинади, ёзиш шарт эмас
+        setBaseRev(cloudRev);
+        localStorage.removeItem(LS_DIRTY);
+        setStatus("Уланган ✓", "var(--good)");
+        return false;
+      }
+      if(!isDirty() && base !== null || !localHasBusinessData()){
+        if(!autoRestoreAllowed()) return false;
+        setStatus("Булутдан янгиланмоқда...", "var(--gold)");
+        const ok = await restore();
+        if(ok){ softRefreshAfterRestore(); setStatus("Уланган ✓", "var(--good)"); }
+        return ok;
+      }
+      setConflict({ cloudRev });
+      return false;
+    }
+
     async function checkOnStart(){
-      if(!ready) return;
+      if(!ready || agentMode) return;
       await ensureAuth();
       try{
         const main = await db.collection(COLL_BACKUP).doc(DOC_MAIN).get();
-        const localSync = Number(localStorage.getItem(LS_LASTSYNC) || 0);
-        setLastSyncLabel(localSync || null);
+        setLastSyncLabel(Number(localStorage.getItem(LS_LASTSYNC) || 0) || null);
         if(!main.exists){
           setStatus("Уланган (илк захира юкланмоқда...)");
           await upload(true);
           return;
         }
-        const meta = main.data();
-        if((meta.updatedAt||0) > localSync + 1000 && meta.device !== deviceId()){
-          setStatus("Булутдан янгиланмоқда...", "var(--gold)");
-          if(await restore()){ softRefreshAfterRestore(); }
-        }else{
-          setStatus("Уланган ✓", "var(--good)");
-          if(Date.now() - (meta.updatedAt||0) > 6*3600*1000) upload(true);
-        }
+        await reconcile(main.data());
       }catch(e){ setStatus("Уланмади (офлайн?)", "var(--bad)"); }
+    }
+
+    // Зиддиятни ҳал қилиш. Иккала нусха ҳам версиялар тарихида сақланади — ҳеч нарса йўқолмайди.
+    async function resolveConflict(choice){
+      const cf = syncConflict;
+      if(!cf || !ready) return false;
+      const msg = choice === "local"
+        ? "Бу қурилмадаги ўзгаришлар булутдаги нусха устига ёзилади.\n\nБулутдаги ҳозирги нусха версиялар тарихида сақланади.\n\nДавом этасизми?"
+        : "Булутдаги нусха олинади, бу қурилмадаги булутга етмаган ўзгаришлар эса версиялар тарихига сақланиб, жорий маълумотдан олинади.\n\nДавом этасизми?";
+      if(!(await customConfirmAsync(msg))) return false;
+      await ensureAuth();
+      try{
+        const cloud = await fetchCloud();
+        if(choice === "local"){
+          if(cloud){
+            await createVersion(JSON.stringify(cloud.data), "Булут нусхаси (маҳаллий ўзгаришлар устун келди)");
+          }
+          setConflict(null);
+          return await upload(false, false, cloud ? cloudRevOf(cloud.meta) : 0);
+        }
+        await createVersion(collectLocal(), "Маҳаллий ўзгаришлар (булут нусхаси устун келди)");
+        setConflict(null);
+        const ok = await restore();
+        if(ok) softRefreshAfterRestore();
+        return ok;
+      }catch(e){
+        console.error("Зиддиятни ҳал қилишда хато:", e);
+        toast("Версия сақлаб бўлмади — қарама-қаршилик ҳал қилинмади");
+        return false;
+      }
     }
 
     function autoRestoreAllowed(){
@@ -2428,8 +2556,16 @@
       alert(lines.join("\n"));
     }
 
+    // Ҳар сақланадиган ўзгариш белгиланади — ҳатто интернет йўқ бўлганда ҳам (кейин юкланиш учун)
+    (function installLocalChangeTracking(){
+      const origSet = localStorage.setItem.bind(localStorage);
+      const origRemove = localStorage.removeItem.bind(localStorage);
+      localStorage.setItem = function(k,v){ origSet(k,v); if(!restoring && SYNC_KEYS.indexOf(k)!==-1){ markLocalChange(); scheduleUpload(); } };
+      localStorage.removeItem = function(k){ origRemove(k); if(!restoring && SYNC_KEYS.indexOf(k)!==-1){ markLocalChange(); scheduleUpload(); } };
+    })();
+
     return {
-      isReady, getDb, debugAuthStatus,
+      isReady, getDb, getConflict, resolveConflict, debugAuthStatus,
       listVersions, createVersionNow, restoreVersion,
       setAgentMode(v){ agentMode = !!v; },
       startReadOnly(){
@@ -2439,22 +2575,18 @@
       },
       start(){
         if(!init()){ setStatus("Уланмади (интернет йўқ)", "var(--bad)"); return false; }
-        const origSet = localStorage.setItem.bind(localStorage);
-        const origRemove = localStorage.removeItem.bind(localStorage);
-        localStorage.setItem = function(k,v){ origSet(k,v); if(!restoring && SYNC_KEYS.indexOf(k)!==-1) scheduleUpload(); };
-        localStorage.removeItem = function(k){ origRemove(k); if(!restoring && SYNC_KEYS.indexOf(k)!==-1) scheduleUpload(); };
         setLastSyncLabel(Number(localStorage.getItem(LS_LASTSYNC)||0) || null);
 
-        // ЖОНЛИ КУЗАТУВ (реал вақт): бошқа қурилма/агент ёзган заҳоти —
-        // тасдиқлашсиз, автоматик тортиб олинади ва саҳифа янгиланади.
+        // ЖОНЛИ КУЗАТУВ (реал вақт): бошқа қурилма ёзган заҳоти — версия рақами бўйича текширилади.
+        // Вақт (соат) солиштирилмайди: қурилма соати нотўғри бўлса ҳам тўғри ишлайди.
         ensureAuth().then(()=>{
           db.collection(COLL_BACKUP).doc(DOC_MAIN).onSnapshot(doc=>{
-            if(!doc.exists) return;
+            if(!doc.exists || agentMode) return;
+            if(doc.metadata && doc.metadata.hasPendingWrites) return;   // ўз ёзувимиз ҳали тасдиқланмаган
             const meta = doc.data();
-            const mySync = Number(localStorage.getItem(LS_LASTSYNC) || 0);
-            if(meta.device !== deviceId() && (meta.updatedAt||0) > mySync + 1000 && !agentMode && autoRestoreAllowed()){
-              restore().then(ok=>{ if(ok) softRefreshAfterRestore(); });
-            }
+            if(meta.device === deviceId()) return;                       // ўз ёзувимиз — база аллақачон янгиланган
+            if(cloudRevOf(meta) === baseRev()) return;                   // ўзгариш йўқ
+            reconcile(meta).catch(e=> console.warn("Синхронлашда хато:", e && e.message));
           }, e=> console.warn("Жонли кузатувда хато:", e && e.message));
         });
 
@@ -2497,20 +2629,7 @@
     const arrow = val>=0 ? `<span class="arrow-up">▲</span>` : `<span class="arrow-down">▼</span>`;
     return `${arrow} ${fmt(val)}`;
   }
-  function esc(v){
-    return String(v ?? "").replace(/[&<>"']/g, m => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-    }[m]));
-  }
-  function normDriver(name){
-    return String(name || "").trim().replace(/\s+/g, " ");
-  }
 
-  function simpleHash(str){
-    let h = 0;
-    for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i)) >>> 0; }
-    return h.toString(36);
-  }
 
   let editGrantedUntil = 0;
   function editGraceMs(){
@@ -2518,18 +2637,61 @@
     const min = v === null ? 15 : Number(v);
     return min * 60 * 1000;
   }
-  function requirePasswordThen(callback){
+  async function requirePasswordThen(callback){
     const hash = getPwHash();
     if(!hash){ callback(); return; }
     if(Date.now() < editGrantedUntil){ callback(); return; }
-    const pw = prompt("Таҳрирлаш учун паролни киритинг:");
-    if(pw === null) return;
-    if(simpleHash(pw) === hash){
+    const r = await askInPage({ title:"Парол", message:"Таҳрирлаш учун паролни киритинг", okText:"Тасдиқлаш",
+      fields:[{ label:"Парол", type:"password", center:true }] });
+    if(r === null) return;
+    if(simpleHash(r[0]) === hash){
       const g = editGraceMs();
       if(g > 0) editGrantedUntil = Date.now() + g;
       callback();
     }
-    else { alert("Парол нотўғри."); }
+    else { customAlert("Парол нотўғри."); }
+  }
+
+  // ---- Дастурнинг ўз киритиш ойнаси (браузернинг prompt() ўрнига — автомашина браузерида ҳам ишлайди) ----
+  // opts: {title, message, fields:[{label,type,inputmode,maxlength,center}], okText, cancelText, validate(values)->string}
+  // Қайтаради: киритилган қийматлар массиви ёки бекор қилинганда null.
+  function askInPage(opts){
+    return new Promise(resolve=>{
+      const ov = document.createElement("div");
+      ov.style.cssText = "position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(10,20,35,.72);z-index:10050;display:flex;align-items:center;justify-content:center;padding:16px;";
+      const box = document.createElement("div");
+      box.style.cssText = "background:var(--card);color:var(--ink);border-radius:14px;padding:22px 20px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.4);";
+      const fieldsHtml = (opts.fields || []).map(f=>
+        `<label style="display:block;margin:0 0 4px;font-weight:600;font-size:13px;">${esc(f.label || "")}</label>` +
+        `<input type="${esc(f.type || "text")}" inputmode="${esc(f.inputmode || "text")}" maxlength="${Number(f.maxlength || 64)}" autocomplete="off" ` +
+        `style="width:100%;margin-bottom:12px;font-size:18px;letter-spacing:${f.center ? 3 : 0}px;text-align:${f.center ? "center" : "left"};">`
+      ).join("");
+      box.innerHTML =
+        `<h3 style="margin:0 0 6px;font-size:17px;">${esc(opts.title || "")}</h3>` +
+        (opts.message ? `<p style="margin:0 0 14px;font-size:13.5px;color:var(--muted);">${esc(opts.message)}</p>` : "") +
+        fieldsHtml +
+        `<div style="display:flex;gap:8px;margin-top:6px;">` +
+          `<button type="button" data-cancel class="btn outline" style="flex:1;">${esc(opts.cancelText || "Бекор қилиш")}</button>` +
+          `<button type="button" data-ok class="btn gold" style="flex:1;">${esc(opts.okText || "OK")}</button>` +
+        `</div>` +
+        `<div data-err style="color:var(--bad);font-size:13px;min-height:18px;margin-top:8px;"></div>`;
+      ov.appendChild(box);
+      document.body.appendChild(ov);
+      const inputs = Array.from(box.querySelectorAll("input"));
+      const finish = val => { ov.remove(); resolve(val); };
+      const submit = ()=>{
+        const vals = inputs.map(i=> i.value);
+        const err = opts.validate ? opts.validate(vals) : "";
+        if(err){ box.querySelector("[data-err]").textContent = err; return; }
+        finish(vals);
+      };
+      box.querySelector("[data-ok]").addEventListener("click", submit);
+      box.querySelector("[data-cancel]").addEventListener("click", ()=> finish(null));
+      inputs.forEach((inp, i)=> inp.addEventListener("keydown", e=>{
+        if(e.key === "Enter"){ if(i < inputs.length - 1) inputs[i + 1].focus(); else submit(); }
+      }));
+      setTimeout(()=>{ if(inputs[0]) inputs[0].focus(); }, 50);
+    });
   }
 
   function loadAudit(){
@@ -2699,20 +2861,8 @@
     }, 500);
   }
 
-  function localDateStr(d){
-    d = d || new Date();
-    return d.getFullYear() + "-" +
-           String(d.getMonth()+1).padStart(2,"0") + "-" +
-           String(d.getDate()).padStart(2,"0");
-  }
 
-  function fmtDate(iso){
-    if(!iso) return "";
-    const p = String(iso).slice(0,10).split("-");
-    return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : String(iso);
-  }
 
-  const fmt = n => Number(n||0).toLocaleString("ru-RU");
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 
   function toast(msg){
@@ -2776,6 +2926,81 @@
       h.closest(".card").classList.toggle("open");
     });
   });
+
+  // ---- Барча ойналарда бўлимларни йиғиш/ёйиш (харажат ва созламадаги каби) ----
+  // Кам ишлатиладиган бўлимлар ёпиқ туради; ҳар бир бўлимнинг ҳолати шу қурилмада эсда қолади.
+  (function setupCollapsibleSections(){
+    const KEY = "kh_ui_sections_v1";                  // фақат шу қурилма учун (булутга чиқмайди)
+    let saved = {};
+    try{ saved = JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ saved = {}; }
+    // Асосий ишчи бўлимлар — очиқ ҳолатда бошланади
+    const DEFAULT_OPEN = {
+      entry:     ["Янги кунлик ёзув"],
+      records:   ["📅 Ойлик жадвал", "Барча ёзувлар"],
+      summary:   ["Ойлик хулоса", "🏆 Шофёрлар рейтинги"],
+      yearly:    ["Йиллик хулоса"],
+      debts:     ["Шофёрлар бўйича қарз ҳолати"],
+      dashboard: ["🔴 Эътибор талаб қилади", "💰 Молиявий занжир"]
+    };
+    const CHEV = '<span class="chev2">▸</span>';
+    const titleOf = h => Array.from(h.childNodes).filter(n=> n.nodeType === 3).map(n=> n.textContent).join("").replace(/\s+/g," ").trim();
+    const ignoreClick = e => e.target.closest("button,input,select,textarea,a,label,.help-ic,.btn");
+    const persist = () => { try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){} };
+    const stateOf = (viewId, title, dflt) => { const k = viewId + "|" + title; return (k in saved) ? !!saved[k] : dflt; };
+    const remember = (viewId, title, open) => { saved[viewId + "|" + title] = open ? 1 : 0; persist(); };
+    const defaultOpen = (viewId, title) => (DEFAULT_OPEN[viewId] || []).some(p=> title.startsWith(p));
+
+    // Кичик бўлим (h3): ундан кейинги элементлар (кейинги h3/hr/h2/карточкагача) унинг ичига киради
+    function wrapSubsections(container, viewId){
+      const h3s = Array.from(container.children).filter(k=> k.tagName === "H3");
+      h3s.forEach(h3=>{
+        const group = []; let n = h3.nextElementSibling;
+        while(n && !["H2","H3","HR"].includes(n.tagName) && !n.classList.contains("card")){ group.push(n); n = n.nextElementSibling; }
+        const wrap = document.createElement("div"); wrap.className = "subsec";
+        const body = document.createElement("div"); body.className = "collapse-body";
+        container.insertBefore(wrap, h3);
+        wrap.appendChild(h3);
+        group.forEach(x=> body.appendChild(x));
+        wrap.appendChild(body);
+        h3.insertAdjacentHTML("beforeend", CHEV);
+        const title = titleOf(h3);
+        wrap.classList.toggle("open", stateOf(viewId, title, false));
+        h3.addEventListener("click", e=>{
+          if(ignoreClick(e)) return;
+          const o = !wrap.classList.contains("open");
+          wrap.classList.toggle("open", o); remember(viewId, title, o);
+        });
+      });
+    }
+
+    // Карточка (h2): мазмуни .collapse-body ичига ўтади, сарлавҳа ҳамиша кўринади
+    function makeCardCollapsible(card, viewId){
+      const h2 = Array.from(card.children).find(k=> k.tagName === "H2");
+      if(!h2 || card.classList.contains("collapsible")) return;
+      const body = document.createElement("div"); body.className = "collapse-body";
+      Array.from(card.childNodes).forEach(n=>{ if(n !== h2) body.appendChild(n); });
+      card.appendChild(body);
+      card.classList.add("collapsible");
+      h2.insertAdjacentHTML("beforeend", CHEV);
+      const title = titleOf(h2);
+      card.classList.toggle("open", stateOf(viewId, title, defaultOpen(viewId, title)));
+      h2.addEventListener("click", e=>{
+        if(ignoreClick(e)) return;
+        const o = !card.classList.contains("open");
+        card.classList.toggle("open", o); remember(viewId, title, o);
+      });
+    }
+
+    document.querySelectorAll("section.view").forEach(view=>{
+      if(view.id === "view-expenses" || view.id === "view-settings") return;   // улар аллақачон шундай
+      const viewId = view.id.replace("view-", "");
+      // 1) аввал ичидаги кичик бўлимлар (h3), сўнг 2) карточкалар
+      Array.from(view.querySelectorAll("*")).forEach(el=>{
+        if(Array.from(el.children).some(k=> k.tagName === "H3")) wrapSubsections(el, viewId);
+      });
+      Array.from(view.querySelectorAll(".card")).forEach(card=> makeCardCollapsible(card, viewId));
+    });
+  })();
 
   function initHelpTooltips(){
     document.body.addEventListener("click", e=>{
@@ -3020,7 +3245,7 @@
   });
 
   ["f_sana","f_mashina"].forEach(id=>{
-    document.getElementById(id)?.addEventListener("change", renderDupHint);
+    kh_on(document.getElementById(id), "change", renderDupHint);
   });
 
   document.getElementById("cancelEditBtn").addEventListener("click", ()=>{
@@ -3126,7 +3351,20 @@
       html += `<div class="card" style="margin-bottom:14px;"><h2 style="margin-bottom:12px;">Бугунги кунлик мақсад бажарилиши</h2>${rows}</div>`;
     }
 
+    const cf = CLOUD.getConflict && CLOUD.getConflict();
+    if(cf){
+      html = `<div class="card" style="border-left:4px solid var(--bad);padding:14px 18px;margin-bottom:14px;">
+        <b style="color:var(--bad);">⚠ Булут билан қарама-қаршилик</b><br>
+        <span style="font-size:13px;">Бу қурилмада булутга етмаган ўзгаришлар бор, булутда эса бошқа қурилма ўзгартирган.
+        Дастур ҳеч нарсани ўчирмайди. Иккала нусха ҳам версиялар тарихида сақланади. Қайсисини асосий қиламиз?</span>
+        <div class="actions-row" style="margin-top:10px;">
+          <button class="btn gold small" data-syncfix="local">Менинг ўзгаришларим устун</button>
+          <button class="btn outline small" data-syncfix="cloud">Булут нусхаси устун</button>
+        </div>
+      </div>` + html;
+    }
     el.innerHTML = html;
+    el.querySelectorAll("[data-syncfix]").forEach(b=> b.addEventListener("click", ()=> CLOUD.resolveConflict(b.dataset.syncfix)));
   }
 
   function renderTodayStats(){
@@ -3455,7 +3693,7 @@
   </WorksheetOptions>`;
 
   function xmlEscape(v){
-    return String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    return String((v == null ? "" : v)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
   function cellS(text){ return `<Cell><Data ss:Type="String">${xmlEscape(text)}</Data></Cell>`; }
   function cellN(num){ return `<Cell ss:StyleID="num"><Data ss:Type="Number">${Number(num||0)}</Data></Cell>`; }
@@ -3770,6 +4008,9 @@ ${XL_PAGE}
           attentionItems.push({color:"var(--bad)", text:`💳 ${esc(k)} қарзи чегарадан ошган: <b>${fmt(qarz)} сўм</b> (чегара: ${fmt(debtLimit)})`});
         }
       });
+    }
+    if(CLOUD.getConflict && CLOUD.getConflict()){
+      attentionItems.push({color:"var(--bad)", text:"⚠ Булут билан қарама-қаршилик — «Ёзув киритиш» бўлимида қайси нусха асосий эканини танланг"});
     }
     // Олинмай турган нақд пул (энг эски олинмаган кундан бери ўтган кунга қараб)
     const cashDays = loadDashCashDays();
@@ -4930,6 +5171,8 @@ ${XL_PAGE}
       return;
     }
     const btn = document.getElementById("pivotShareBtn");
+    const pivotCard = el.closest(".card");
+    if(pivotCard && !pivotCard.classList.contains("open")) pivotCard.classList.add("open");   // ёпиқ бўлса расм бўш чиқмасин
     btn.disabled = true;
     toast("Расм тайёрланмоқда...");
     // html2canvas "overflow:auto" (сурилувчи) қутиларнинг фақат кўринадиган
@@ -6277,28 +6520,30 @@ ${XL_PAGE}
     if(!sent) return;
     toast("Тасдиқлаш коди Telegram'га юборилди ✓");
 
-    const entered = prompt("Telegram'га юборилган 6 хонали тасдиқлаш кодини киритинг:");
-    if(entered === null) return;
+    const rc = await askInPage({ title:"Тасдиқлаш коди", message:"Telegram'га юборилган 6 хонали кодни киритинг",
+      okText:"Тасдиқлаш", fields:[{ label:"Код", type:"text", inputmode:"numeric", maxlength:6, center:true }],
+      validate: v=> /^\d{6}$/.test(v[0].trim()) ? "" : "6 та рақам киритинг" });
+    if(rc === null) return;
+    const entered = rc[0];
 
     const resetRaw = localStorage.getItem(LS_PWRESET);
     const reset = resetRaw ? JSON.parse(resetRaw) : null;
     if(!reset || Date.now() > reset.expiresAt){
-      alert("Код муддати тугаган. Илтимос, қайта уриниб кўринг.");
+      customAlert("Код муддати тугаган. Илтимос, қайта уриниб кўринг.");
       localStorage.removeItem(LS_PWRESET);
       return;
     }
     if(simpleHash(entered.trim()) !== reset.hash){
-      alert("Код нотўғри. Илтимос, қайта уриниб кўринг.");
+      customAlert("Код нотўғри. Илтимос, қайта уриниб кўринг.");
       return;
     }
     localStorage.removeItem(LS_PWRESET);
 
-    const pw1 = prompt("Тасдиқланди ✓ Энди янги парол киритинг (камида 4 та белги):");
-    if(pw1 === null) return;
-    if(pw1.trim().length < 4){ alert("Парол камида 4 та белгидан иборат бўлиши керак."); return; }
-    const pw2 = prompt("Янги паролни такрорланг:");
-    if(pw2 === null) return;
-    if(pw1 !== pw2){ alert("Пароллар мос келмади. Қайта уриниб кўринг."); return; }
+    const rp = await askInPage({ title:"Янги парол", message:"Код тасдиқланди ✓ Камида 4 та белги",
+      okText:"Сақлаш", fields:[{ label:"Янги парол", type:"password" }, { label:"Паролни такрорланг", type:"password" }],
+      validate: v=> v[0].trim().length < 4 ? "Парол камида 4 та белгидан иборат бўлиши керак" : (v[0] !== v[1] ? "Пароллар мос келмади" : "") });
+    if(rp === null) return;
+    const pw1 = rp[0];
 
     localStorage.setItem(LS_PW, simpleHash(pw1));
     refreshPwStatus();
@@ -6309,27 +6554,26 @@ ${XL_PAGE}
     document.getElementById("lockScreen").classList.add("hidden");
   });
 
-  document.getElementById("setPwBtn").addEventListener("click", ()=>{
-    const pw1 = prompt("Янги парол киритинг (камида 4 та белги):");
-    if(pw1 === null) return;
-    if(pw1.trim().length < 4){ alert("Парол камида 4 та белгидан иборат бўлиши керак."); return; }
-    const pw2 = prompt("Паролни такрорланг:");
-    if(pw2 === null) return;
-    if(pw1 !== pw2){ alert("Пароллар мос келмади. Қайта уриниб кўринг."); return; }
-    localStorage.setItem(LS_PW, simpleHash(pw1));
+  document.getElementById("setPwBtn").addEventListener("click", async ()=>{
+    const r = await askInPage({ title:"Янги парол", message:"Камида 4 та белги", okText:"Сақлаш",
+      fields:[{ label:"Янги парол", type:"password" }, { label:"Паролни такрорланг", type:"password" }],
+      validate: v=> v[0].trim().length < 4 ? "Парол камида 4 та белгидан иборат бўлиши керак" : (v[0] !== v[1] ? "Пароллар мос келмади" : "") });
+    if(r === null) return;
+    localStorage.setItem(LS_PW, simpleHash(r[0]));
     refreshPwStatus();
     toast("Парол ўрнатилди ✓");
   });
-  document.getElementById("removePwBtn").addEventListener("click", ()=>{
+  document.getElementById("removePwBtn").addEventListener("click", async ()=>{
     if(!getPwHash()){ toast("Парол ўрнатилмаган"); return; }
-    const pw = prompt("Ўчириш учун жорий паролни киритинг:");
-    if(pw === null) return;
-    if(simpleHash(pw) !== getPwHash()){ alert("Парол нотўғри."); return; }
+    const r = await askInPage({ title:"Паролни ўчириш", message:"Ўчириш учун жорий паролни киритинг", okText:"Ўчириш",
+      fields:[{ label:"Жорий парол", type:"password" }] });
+    if(r === null) return;
+    if(simpleHash(r[0]) !== getPwHash()){ customAlert("Парол нотўғри."); return; }
     localStorage.removeItem(LS_PW);
     refreshPwStatus();
     toast("Парол ўчирилди ✓");
   });
-  const LS_EXPENSES = "kh_expenses_v1";
+    const LS_EXPENSES = "kh_expenses_v1";
   const LS_EXPENSE_PAYMENTS = "kh_expense_payments_v1";
   function loadExpenses(){
     try{ return JSON.parse(localStorage.getItem(LS_EXPENSES)) || []; }catch(e){ return []; }
@@ -6463,7 +6707,7 @@ ${XL_PAGE}
 
   function updateExpensePaymentPreview(){
     const sel = document.getElementById("ep_expense");
-    const amount = Number(document.getElementById("ep_summa")?.value||0);
+    const amount = Number((document.getElementById("ep_summa")||{}).value||0);
     const info = document.getElementById("ep_qoldiqPreview");
     if(!sel || !info) return;
     const x = expenses.find(e=>e.id===sel.value);
@@ -6538,9 +6782,9 @@ ${XL_PAGE}
     });
   }
 
-  document.getElementById("ep_expense")?.addEventListener("change", updateExpensePaymentPreview);
-  document.getElementById("ep_summa")?.addEventListener("input", updateExpensePaymentPreview);
-  document.getElementById("ep_sana")?.addEventListener("change", updateExpensePaymentPreview);
+  kh_on(document.getElementById("ep_expense"), "change", updateExpensePaymentPreview);
+  kh_on(document.getElementById("ep_summa"), "input", updateExpensePaymentPreview);
+  kh_on(document.getElementById("ep_sana"), "change", updateExpensePaymentPreview);
 
   function openExpensesFor(mashina){
     return expenses
@@ -6595,17 +6839,17 @@ ${XL_PAGE}
           Суммани камайтиринг ёки янги харажат киритинг.</div>` : ""}`;
   }
 
-  document.getElementById("ep_mode")?.addEventListener("change", ()=>{
+  kh_on(document.getElementById("ep_mode"), "change", ()=>{
     const manual = document.getElementById("ep_mode").value === "manual";
     document.getElementById("ep_expenseWrap").style.display = manual ? "" : "none";
     document.getElementById("ep_expense").required = manual;
     renderAutoPreview();
     updateEpQoldiqPreview();
   });
-  document.getElementById("ep_mashina")?.addEventListener("change", ()=>{
+  kh_on(document.getElementById("ep_mashina"), "change", ()=>{
     renderAutoPreview(); updateEpQoldiqPreview();
   });
-  document.getElementById("ep_summa")?.addEventListener("input", renderAutoPreview);
+  kh_on(document.getElementById("ep_summa"), "input", renderAutoPreview);
 
   function updateEpQoldiqPreview(){
     const el = document.getElementById("ep_qoldiqPreview");
@@ -6618,7 +6862,7 @@ ${XL_PAGE}
       : "Бу автомобилда қопланмаган харажат йўқ.";
   }
 
-  document.getElementById("expensePaymentForm")?.addEventListener("submit", async e=>{
+  kh_on(document.getElementById("expensePaymentForm"), "submit", async e=>{
     e.preventDefault();
     const mode = document.getElementById("ep_mode").value;
     const mashina = document.getElementById("ep_mashina").value;
@@ -6725,7 +6969,7 @@ ${XL_PAGE}
   document.getElementById("searchExpenses").addEventListener("input", renderExpenses);
   // «📅 Барча ойлар»: ой майдони тозаланади → барча ойларнинг харажатлари кўринади.
   // Яна босилса — жорий ойга қайтади.
-  document.getElementById("expAllMonthsBtn")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("expAllMonthsBtn"), "click", ()=>{
     const m = document.getElementById("expenseMonth");
     m.value = m.value ? "" : currentMonthValueExp();
     renderExpenses();
@@ -7042,11 +7286,11 @@ ${XL_PAGE}
       renderAgentsList();
     }));
   }
-  document.getElementById("addAgentBtn")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("addAgentBtn"), "click", ()=>{
     agents.push({name:"Янги агент", pin:"", active:true});
     renderAgentsList();
   });
-  document.getElementById("saveAgentsBtn")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("saveAgentsBtn"), "click", ()=>{
     const rows = document.querySelectorAll("#agentsList .settings-row");
     const list = Array.from(rows).map((row,i)=>{
       const g = f => row.querySelector(`[data-afield="${f}"]`).value.trim();
@@ -7152,7 +7396,7 @@ ${XL_PAGE}
       });
     });
   }
-  document.getElementById("runDupCheckBtn")?.addEventListener("click", renderDupCheck);
+  kh_on(document.getElementById("runDupCheckBtn"), "click", renderDupCheck);
 
   /* =========================================================
      ТИЗИМНИ ТЕКШИРИШ: ҳақиқий маълумотга ТЕГМАСДАН, синов
@@ -7357,7 +7601,7 @@ ${XL_PAGE}
         </div>`;
     }, 50);
   }
-  document.getElementById("runSystemCheckBtn")?.addEventListener("click", renderSystemCheckResult);
+  kh_on(document.getElementById("runSystemCheckBtn"), "click", renderSystemCheckResult);
 
   const LS_AGENT_FIELDS = "kh_agent_fields_v1";
   const AGENT_FIELD_DEFS = [
@@ -7398,39 +7642,9 @@ ${XL_PAGE}
   let calcRefreshHook = null;   // ҳисоблагич ойнаси очиқ бўлса, маълумот янгиланганда уни қайта чизади
 
   // Санага n ой қўшиш (ой охиридан ошмайди: 31.01 + 1 ой = 28.02)
-  function addMonthsISO(iso, n){
-    const p = String(iso || "").slice(0,10).split("-").map(Number);
-    if(p.length !== 3 || p.some(isNaN)) return "";
-    const total = p[1] - 1 + n;
-    const y = p[0] + Math.floor(total / 12);
-    const m0 = ((total % 12) + 12) % 12;
-    const d = Math.min(p[2], new Date(y, m0 + 1, 0).getDate());
-    return y + "-" + String(m0 + 1).padStart(2,"0") + "-" + String(d).padStart(2,"0");
-  }
 
   // Тўлов жадвали. type: "annuitet" (ҳар ой бир хил) ёки "differensial" (асосий қарз тенг, фоиз камаяди).
   // Барча суммалар бутун сўмга юмалоқланади, охирги ой қолдиқни ёпади (жами асосий қарз аниқ P га тенг).
-  function buildCreditSchedule(p){
-    const n = Math.max(1, Math.round(p.months));
-    const P = Math.max(0, Math.round(p.principal));
-    const r = Number(p.rate || 0) / 100 / 12;
-    const first = /^\d{4}-\d{2}-\d{2}$/.test(p.firstDate || "") ? p.firstDate : localDateStr();
-    const annuity = p.type === "differensial" ? 0
-      : Math.round(r === 0 ? P / n : P * r / (1 - Math.pow(1 + r, -n)));
-    const baseAsosiy = Math.round(P / n);
-    const rows = [];
-    let balance = P;
-    for(let i = 1; i <= n; i++){
-      const foiz = Math.round(balance * r);
-      let asosiy;
-      if(i === n) asosiy = balance;
-      else if(p.type === "differensial") asosiy = Math.min(baseAsosiy, balance);
-      else asosiy = Math.max(0, Math.min(annuity - foiz, balance));
-      rows.push({ n:i, sana: addMonthsISO(first, i - 1), tolov: asosiy + foiz, asosiy, foiz, qoldiq: balance - asosiy });
-      balance -= asosiy;
-    }
-    return rows;
-  }
 
   // Шартнома ҳолати: жадвал + қилинган тўловлар. Тўловлар жадвалдаги ойларга КЕТМА-КЕТ тақсимланади
   // (биринчи ойдан бошлаб), шунда ҳар бир ой «тўланган / қисман / тўланмаган» деб кўринади.
@@ -7470,16 +7684,9 @@ ${XL_PAGE}
   // Сўм — бутун сўм; доллар — СЕНТ (1 $ = 100 сент). Шунда барча ҳисоб-китоб бутун сонларда қолади
   // (суза нуқтали хато чиқмайди), «валюта» белгиси йўқ эски шартномалар эса сўм ҳисобланади.
   const lzCur = c => (c && c.valyuta === "USD") ? "USD" : "UZS";
-  function fmtUsd(cents){
-    const n = Math.round(Number(cents) || 0);
-    const v = Math.abs(n);
-    const whole = String(Math.floor(v / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    return (n < 0 ? "-" : "") + whole + "." + String(v % 100).padStart(2, "0");
-  }
   const fmtMN = (v, cur) => cur === "USD" ? fmtUsd(v) : fmt(v);                    // жадвал катаклари учун (бирликсиз)
   const fmtMC = (v, cur) => cur === "USD" ? fmtUsd(v) + " $" : fmt(v);              // карточкалар учун
   const fmtMU = (v, cur) => cur === "USD" ? fmtUsd(v) + " $" : fmt(v) + " сўм";     // жумла ичида
-  const somOfUsd = (cents, kurs) => Math.round(Number(cents || 0) / 100 * Number(kurs || 0));
 
   // ---- Йиғма ойлик ҳисобот учун: лизинг бўлими ----
   // Ҳолат «ҳисобот санаси» бўйича: ой тугаган бўлса — ой охирига, тугамаган бўлса — бугунга.
@@ -7600,7 +7807,7 @@ ${XL_PAGE}
   }
   renderAgentFieldsList();
 
-  document.getElementById("saveAgentFieldsBtn")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("saveAgentFieldsBtn"), "click", ()=>{
     const o = {};
     document.querySelectorAll("[data-afkey]").forEach(cb=>{ o[cb.dataset.afkey] = cb.checked; });
     agentFields = Object.assign(defaultAgentFields(), o);
@@ -7683,7 +7890,7 @@ ${XL_PAGE}
         logAudit("Агент ёзувлари қабул қилинди", `${fresh.length} та ёзув`);
         renderEntryBanners();
         refreshActiveView();
-        toast(`Агентдан ${fresh.length} та янги ёзув келди ✓`);
+        toast(`Агентдан ${fresh.length} та янги ёзув · жами ${fmt(fresh.reduce((s,r)=> s + Number(r.tushum||0), 0))} сўм ✓`);
         announceNewAgentRecords(fresh);
       }
       // Ҳар доим ЖОРИЙ, тўлиқ inbox ҳолатини (эски + янги) булутга тасдиқлаб
@@ -7714,7 +7921,7 @@ ${XL_PAGE}
     sel._list = list;
   }
 
-  document.getElementById("agentModeBtn")?.addEventListener("click", openAgentLogin);
+  kh_on(document.getElementById("agentModeBtn"), "click", openAgentLogin);
 
   (function restoreAgentSession(){
     const name = sessionStorage.getItem("kh_agent");
@@ -7729,13 +7936,13 @@ ${XL_PAGE}
     document.getElementById("agentGreeting").textContent = "Салом, " + name + "!";
     initAgentPanel();
   })();
-  document.getElementById("agentBack")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("agentBack"), "click", ()=>{
     document.getElementById("agentLogin").style.display = "none";
     document.getElementById("mainApp").style.display = "";
     document.getElementById("lockScreen").style.display = "flex";
   });
 
-  document.getElementById("agentSubmit")?.addEventListener("click", async ()=>{
+  kh_on(document.getElementById("agentSubmit"), "click", async ()=>{
     const sel = document.getElementById("agentSelect");
     const name = sel.value;
     const pin = document.getElementById("agentPin").value.trim();
@@ -7757,7 +7964,7 @@ ${XL_PAGE}
     initAgentPanel();
   });
 
-  document.getElementById("agentExitBtn")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("agentExitBtn"), "click", ()=>{
     sessionStorage.removeItem("kh_agent");
     location.reload();
   });
@@ -7803,7 +8010,7 @@ ${XL_PAGE}
     renderAgentPivot();
   }
 
-  document.getElementById("agMoreToggle")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("agMoreToggle"), "click", ()=>{
     const w = document.getElementById("agMoreWrap");
     const t = document.getElementById("agMoreToggle");
     w.classList.toggle("hidden");
@@ -7823,10 +8030,10 @@ ${XL_PAGE}
     document.getElementById("agPreview").innerHTML = html;
   }
   ["ag_tushum","ag_yoqilgi","ag_yol","ag_boshqa","ag_topshirilgan"].forEach(id=>{
-    document.getElementById(id)?.addEventListener("input", agComputePreview);
+    kh_on(document.getElementById(id), "input", agComputePreview);
   });
 
-  document.getElementById("agentForm")?.addEventListener("submit", async e=>{
+  kh_on(document.getElementById("agentForm"), "submit", async e=>{
     e.preventDefault();
     if(!currentAgent) return;
     const btn = e.target.querySelector('button[type="submit"]');
@@ -7966,9 +8173,9 @@ ${XL_PAGE}
       body.innerHTML = `<tr><td colspan="7" class="empty">Рўйхатни юклаб бўлмади (интернет?).</td></tr>`;
     }
   }
-  document.getElementById("ag_sana")?.addEventListener("change", ()=>{ renderAgentToday(); renderAgentDupHint(); });
-  document.getElementById("ag_mashina")?.addEventListener("change", renderAgentDupHint);
-  document.getElementById("agTodayRefreshBtn")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("ag_sana"), "change", ()=>{ renderAgentToday(); renderAgentDupHint(); });
+  kh_on(document.getElementById("ag_mashina"), "change", renderAgentDupHint);
+  kh_on(document.getElementById("agTodayRefreshBtn"), "click", ()=>{
     agentDataCache = null;
     renderAgentToday();
     renderAgentPivot();
@@ -8192,11 +8399,11 @@ ${XL_PAGE}
     printHtmlBlock(html, "");
   }
 
-  document.getElementById("agPivotRefreshBtn")?.addEventListener("click", renderAgentPivot);
-  document.getElementById("agPivotExcelBtn")?.addEventListener("click", exportAgentPivotExcel);
-  document.getElementById("agPivotPdfBtn")?.addEventListener("click", exportAgentPivotPdf);
+  kh_on(document.getElementById("agPivotRefreshBtn"), "click", renderAgentPivot);
+  kh_on(document.getElementById("agPivotExcelBtn"), "click", exportAgentPivotExcel);
+  kh_on(document.getElementById("agPivotPdfBtn"), "click", exportAgentPivotPdf);
   ["agPivotMonth","agPivotMetric","agPivotUnit"].forEach(id=>{
-    document.getElementById(id)?.addEventListener("change", renderAgentPivot);
+    kh_on(document.getElementById(id), "change", renderAgentPivot);
   });
 
   // ===================== ҲИСОБЛАГИЧ (интерфейс): оддий + кредит/лизинг + валюта =====================
@@ -8216,7 +8423,7 @@ ${XL_PAGE}
     const LS_FX = "kh_fx_rate_v1";            // охирги ишлатилган доллар курси (фақат шу қурилмада)
 
     const parseNum = v => {
-      const s = String(v ?? "").replace(/[\s\u00A0]/g, "").replace(",", ".");
+      const s = String((v == null ? "" : v)).replace(/[\s\u00A0]/g, "").replace(",", ".");
       return s === "" ? NaN : Number(s);
     };
     const isOpen = () => overlay.classList.contains("show");
@@ -9105,7 +9312,7 @@ ${XL_PAGE}
       customAlert("Версияга қайтариб бўлмади: " + versionErrorText(e) + "\n\nМаълумотларингиз ўзгармади.");
     }
   }
-  document.getElementById("versionSaveNowBtn")?.addEventListener("click", async ()=>{
+  kh_on(document.getElementById("versionSaveNowBtn"), "click", async ()=>{
     if(!CLOUD.isReady()){ customAlert("Булут уланмаган."); return; }
     try{
       await CLOUD.createVersionNow("Қўлда сақланган");
@@ -9113,17 +9320,17 @@ ${XL_PAGE}
       renderVersionsList();
     }catch(e){ customAlert("Версияни сақлаб бўлмади: " + versionErrorText(e)); }
   });
-  document.getElementById("versionRefreshBtn")?.addEventListener("click", renderVersionsList);
-  document.querySelector("#versionsCard > h2")?.addEventListener("click", ()=>{
+  kh_on(document.getElementById("versionRefreshBtn"), "click", renderVersionsList);
+  kh_on(document.querySelector("#versionsCard > h2"), "click", ()=>{
     setTimeout(()=>{
       const card = document.getElementById("versionsCard");
       if(card && card.classList.contains("open")) renderVersionsList();
     }, 0);
   });
 
-  document.getElementById("cloudSyncNowBtn")?.addEventListener("click", ()=> CLOUD.uploadNow());
-  document.getElementById("cloudRestoreBtn")?.addEventListener("click", ()=> CLOUD.restoreNow());
-  document.getElementById("cloudAuthCheckBtn")?.addEventListener("click", ()=> CLOUD.debugAuthStatus());
+  kh_on(document.getElementById("cloudSyncNowBtn"), "click", ()=> CLOUD.uploadNow());
+  kh_on(document.getElementById("cloudRestoreBtn"), "click", ()=> CLOUD.restoreNow());
+  kh_on(document.getElementById("cloudAuthCheckBtn"), "click", ()=> CLOUD.debugAuthStatus());
   if(currentAgent){
     CLOUD.startReadOnly();
   }else{
@@ -9246,6 +9453,10 @@ ${XL_PAGE}
     } else {
       text = `Диққат. Агентдан янги ёзув келди.`;
     }
+    // Жами сумма (янги келган ёзувлар бўйича), ўзбекча сўз билан
+    const total = fresh.reduce((s,r)=> s + Number(r.tushum||0), 0);
+    const words = sumToWordsUz(total);
+    text += words !== null ? ` Жами тушум ${words} сўм.` : ` Жами тушум ${fmt(total)} сўм.`;
     playBeep();
     setTimeout(()=> speakText(text), 400);
   }
