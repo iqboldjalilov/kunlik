@@ -2,7 +2,7 @@
 <html lang="uz">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Кунлик Хисобот (by Iqbol Jalilov) — Йўналиш назорати</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
@@ -246,12 +246,37 @@
     .btn{padding:12px 20px;font-size:15px;}
     .stat .value{font-size:19px;}
 
+    /* ---- Телефонда ихчамроқ кўриниш: катта бўшлиқлар ва узун сарлавҳа қисқаради ---- */
+    header{padding:12px 14px;gap:8px;}
+    header .brand{gap:10px;}
+    header .brand .mark{width:34px;height:34px;font-size:15px;border-radius:9px;}
+    header h1{font-size:15px;}
+    header h1 span{display:none !important;}
+    header p{display:none;}
+    header > div:nth-of-type(2){gap:8px;}
+    #liveClock{display:none;}
+    #themeToggle{padding:7px 10px;font-size:13px;}
+    #exitBtn{padding:7px 12px !important;font-size:12.5px !important;}
+
+    main{padding:14px 12px 90px;}
+    .card{padding:14px;margin-bottom:14px;}
+    .card h2{font-size:14.5px;margin-bottom:12px;padding-bottom:8px;}
+    .grid-cards{gap:10px;margin-bottom:14px;}
+    .stat{padding:12px 14px;}
+    .subsec > h3{font-size:13.5px;}
+    table{font-size:12.5px;}
+    thead th{padding:8px 6px;}
+    tbody td{padding:7px 6px;}
+
+    #bottomTabBar{padding-bottom:env(safe-area-inset-bottom, 0px);}
+
     #bottomMoreOverlay{
       display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.35);z-index:490;
     }
     #bottomMoreOverlay.show{display:block;}
     #bottomMorePanel{
-      display:none;position:fixed;left:10px;right:10px;bottom:72px;z-index:501;
+      display:none;position:fixed;left:10px;right:10px;
+      bottom:calc(72px + env(safe-area-inset-bottom, 0px));z-index:501;
       background:var(--card);border-radius:14px;overflow:hidden;
       box-shadow:0 -6px 24px rgba(0,0,0,.25);
     }
@@ -325,11 +350,11 @@
   .calc-row-next td{background:var(--gold-soft);}
   [data-theme="dark"] .calc-row-next td{background:#3a3320;}
   @media(max-width:760px){
-    .calc-fab{left:12px;bottom:78px;width:48px;height:48px;font-size:22px;}
+    .calc-fab{left:12px;bottom:calc(78px + env(safe-area-inset-bottom, 0px));width:48px;height:48px;font-size:22px;}
     .calc-overlay{align-items:flex-end;padding:0;}
     .calc-box{max-width:none;border-radius:var(--radius) var(--radius) 0 0;max-height:94vh;}
     .calc-body{padding:12px;}
-    .toast{bottom:78px;right:12px;}
+    .toast{bottom:calc(78px + env(safe-area-inset-bottom, 0px));right:12px;}
   }
 
   /* ---------- дастур услубидаги alert/confirm модаллари ---------- */
@@ -457,6 +482,8 @@
   @media(max-width:420px){
     #agentPanel .filters{grid-template-columns:1fr;}
     #agentPanel header h1{font-size:16px;}
+    header h1{font-size:14px;}
+    header .brand .mark{width:30px;height:30px;font-size:14px;}
   }
 
   #printArea{display:none;}
