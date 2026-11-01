@@ -84,7 +84,7 @@
   nav button:hover:not(.active){border-color:var(--gold-soft);}
   nav button:active{transform:scale(.94);}
 
-  main{max-width:1180px;margin:0 auto;padding:26px 20px 90px;}
+  main{max-width:none;width:100%;margin:0 auto;padding:26px 20px 90px;box-sizing:border-box;}
   .view{display:none;}
   .view.active{display:block;animation:fadeIn .25s ease;}
   @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
@@ -111,7 +111,8 @@
   .subsec{margin-top:14px;}
   /* Ойлик жадвал (кунма-кун): экран баландлигига мослашади; ⛶ билан бутун экранга чиқади */
   #pivotWrap{max-height:min(560px, calc(100vh - 260px));min-height:180px;}
-  #pivotWrap.fs{position:fixed;top:0;right:0;bottom:0;left:0;max-height:none;height:auto;z-index:9800;border-radius:0;border:none;background:var(--card);padding:10px;box-shadow:none;overflow:auto;}
+  #pivotWrap.fs{position:fixed;top:0;right:0;bottom:0;left:0;width:100%;max-width:100%;max-height:none;height:auto;z-index:9800;border-radius:0;border:none;background:var(--card);padding:6px 4px;margin:0;box-shadow:none;overflow:auto;box-sizing:border-box;}
+  #pivotWrap.fs .pivot-table{width:100%;min-width:100%;}
   .subsec > h3{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px;padding-top:12px;border-top:1px dashed var(--line);font-size:14.5px;}
   .subsec > h3:hover{color:var(--gold);}
   .subsec > h3 .chev2{font-size:12px;color:var(--muted);transition:transform .15s;flex:none;}
