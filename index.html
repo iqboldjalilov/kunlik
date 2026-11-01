@@ -109,6 +109,9 @@
   .card.collapsible.open > h2 .chev2{transform:rotate(90deg);}
   .card.collapsible > .collapse-body{display:none;}
   .subsec{margin-top:14px;}
+  /* «Барча ёзувлар» жадвали: экран баландлигига мослашади; ⛶ тугмаси билан бутун экранга чиқади */
+  #recordsTableWrap{max-height:min(520px, calc(100vh - 230px));min-height:180px;}
+  #recordsTableWrap.fs{position:fixed;top:0;right:0;bottom:0;left:0;max-height:none;height:auto;z-index:9800;border-radius:0;border:none;background:var(--card);padding:10px;box-shadow:none;}
   .subsec > h3{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px;padding-top:12px;border-top:1px dashed var(--line);font-size:14.5px;}
   .subsec > h3:hover{color:var(--gold);}
   .subsec > h3 .chev2{font-size:12px;color:var(--muted);transition:transform .15s;flex:none;}
@@ -909,8 +912,11 @@
         <div class="fld">
           <button class="btn outline" id="printRecords">🖨 Чоп этиш / PDF</button>
         </div>
+        <div class="fld">
+          <button class="btn outline" id="recordsFullBtn">⛶ Тўлиқ экран</button>
+        </div>
       </div>
-      <div class="table-wrap">
+      <div class="table-wrap" id="recordsTableWrap">
         <table>
           <thead>
             <tr>
@@ -9611,6 +9617,19 @@ ${XL_PAGE}
       return e.returnValue;
     }
   });
+  // ---- «Барча ёзувлар»: тўлиқ экран режими (⛶ тугмаси; Escape билан ҳам ёпилади) ----
+  (function setupRecordsFullscreen(){
+    const btn = document.getElementById("recordsFullBtn");
+    const wrap = document.getElementById("recordsTableWrap");
+    if(!btn || !wrap) return;
+    const setFs = on=>{
+      wrap.classList.toggle("fs", on);
+      btn.textContent = on ? "✕ Ёпиш" : "⛶ Тўлиқ экран";
+      document.body.style.overflow = on ? "hidden" : "";
+    };
+    btn.addEventListener("click", ()=> setFs(!wrap.classList.contains("fs")));
+    document.addEventListener("keydown", e=>{ if(e.key === "Escape" && wrap.classList.contains("fs")) setFs(false); });
+  })();
 })();
 </script>
 </body>
