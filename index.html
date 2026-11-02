@@ -820,6 +820,7 @@
         </div>
         <div class="full" id="dupHint"></div>
         <div class="full" id="qarzPreview" style="font-size:13px;color:var(--muted);"></div>
+        <div class="full" id="lowPreview" style="font-size:13.5px;font-weight:700;color:#b3402a;"></div>
         <div class="full" id="kmPreview" style="font-size:13px;color:var(--muted);"></div>
         <div class="full">
           <label>Изоҳ (ихтиёрий)</label>
@@ -3183,6 +3184,17 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
   });
 
   function computePreview(){
+    {
+      const lp = document.getElementById("lowPreview");
+      if(lp){
+        const tu = Number(document.getElementById("f_tushum").value || 0);
+        const tvRaw = document.getElementById("f_topshirilgan").value;
+        const tv = tvRaw === "" ? null : Number(tvRaw);
+        lp.innerHTML = (tv !== null && isLowHandover({tushum: tu, topshirilgan: tv}))
+          ? `⚠ Топширилган сумма кам (тушумнинг ${tu > 0 ? Math.round(tv / tu * 100) : 0}% и). Рақам адашганмикан, текширинг.`
+          : "";
+      }
+    }
     const tushum = Number(document.getElementById("f_tushum").value||0);
     const yoqilgi = Number(document.getElementById("f_yoqilgi").value||0);
     const yol = Number(document.getElementById("f_yol").value||0);
@@ -3419,6 +3431,14 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
     });
   }
 
+  // Кам топширилган ёзув: топширилган сумма тушумнинг 30% дан кам ёки тушумдан катта
+  const LOW_HANDOVER_PCT = 0.3;
+  function isLowHandover(r){
+    if(!r || r.topshirilgan === null || r.topshirilgan === undefined) return false;
+    const t = Number(r.topshirilgan || 0), tu = Number(r.tushum || 0);
+    if(tu <= 0) return false;
+    return t < tu * LOW_HANDOVER_PCT || t > tu;
+  }
   function renderRecords(){
     const carFilter = document.getElementById("filterCar").value;
     const from = document.getElementById("filterFrom").value;
@@ -3452,12 +3472,13 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
       const xarajat = r.yoqilgi+r.yol+r.boshqa;
       const sof = r.tushum - xarajat;
       const isDup = dupKeys.has(r.sana + "||" + r.mashina);
-      return `<tr${isDup ? ' style="background:#fff4f3;"' : ''}>
+      const isLow = isLowHandover(r);
+      return `<tr${isDup ? ' style="background:#fff4f3;"' : (isLow ? ' style="background:#fde3df;box-shadow:inset 4px 0 0 #b3402a;"' : '')}>
         <td>${i+1}${isDup ? ' <span title="Бу кун ва мошина учун бир нечта ёзув бор" style="color:#b3402a;font-weight:800;">⚠</span>' : ''}</td>
         <td>${fmtDate(r.sana)}${r.manba && r.manba.indexOf("агент")===0
             ? `<br><span class="pill" style="background:#3b7dd8;color:#fff;font-size:10.5px;" title="${esc(r.manba)}">👤 агент</span>` : ""}</td>
         <td>${carPill(r.mashina)}</td>
-        <td>${esc(r.shofyor)||"—"}</td>
+        <td>${esc(r.shofyor)||"—"}${isLow ? ` <span class="pill" style="background:#b3402a;color:#fff;font-size:10.5px;">⚠ топширилган ${fmt(r.topshirilgan)}</span>` : ""}</td>
         <td>${esc(r.yonalish)||"—"}</td>
         <td>${fmt(r.tushum)}</td>
         <td>${fmt(xarajat)}</td>
@@ -4042,6 +4063,14 @@ ${XL_PAGE}
           attentionItems.push({color:"var(--bad)", text:`💳 ${esc(k)} қарзи чегарадан ошган: <b>${fmt(qarz)} сўм</b> (чегара: ${fmt(debtLimit)})`});
         }
       });
+    }
+    {
+      const lows = records.filter(r=> isLowHandover(r));
+      if(lows.length){
+        const sample = lows.slice().sort((a,b)=> String(b.sana).localeCompare(String(a.sana))).slice(0,3)
+          .map(r=> `${fmtDate(r.sana)} (${esc(r.shofyor || "—")}: ${fmt(r.topshirilgan)} / ${fmt(r.tushum)})`).join("; ");
+        attentionItems.push({color:"var(--bad)", text:`⚠ Кам топширилган ёзувлар: <b>${lows.length} та</b> — ${sample}${lows.length > 3 ? " …" : ""}. Ёзувни текширинг.`});
+      }
     }
     if(CLOUD.getConflict && CLOUD.getConflict()){
       attentionItems.push({color:"var(--bad)", text:"⚠ Булут билан қарама-қаршилик — «Ёзув киритиш» бўлимида қайси нусха асосий эканини танланг"});
