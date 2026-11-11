@@ -1986,6 +1986,9 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
     const LS_BASEREV  = "kh_baserev_v1";
     let syncConflict  = null;      // {cloudRev} — булут ва маҳаллий ўзгариш тўқнашганда; ҳал қилинмагунча ҳеч нарса устига ёзилмайди
     let resyncRequested = false;   // сақлаш давом этаётганда яна сўров келса — тугагач такрорлаш
+    // Дастур версияси: булутга ёзишда шу рақам ёзилади. Булутда янгироқ версия бўлса, бу қурилма ёзмайди.
+    const APP_VERSION = 12;
+    let oldAppBlocked = false;     // булутда янгироқ версия бор — бу қурилма ёзишдан тўхтатилган
     const cloudRevOf = meta => Number((meta && meta.rev) || 0);
     const baseRev = () => { const v = localStorage.getItem(LS_BASEREV); return v === null ? null : Number(v); };
     const setBaseRev = r => localStorage.setItem(LS_BASEREV, String(r));
@@ -2102,6 +2105,7 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
     // бир пайтда ёзса ҳам бири иккинчисини босиб кетмайди. Мос келмаса — ҳолат қайта баҳоланади.
     // force: текширувсиз (фақат версиядан тиклашдан кейин); expectRev: аниқ кутилган рақам.
     async function upload(silent, force, expectRev){
+      if(oldAppBlocked) return false;              // эски нусха — ёзмайди
       if(agentMode) return false;                  // агент умумий базага ЁЗМАЙДИ
       if(!ready) return false;
       if(!force && syncConflict){                  // зиддият ҳал бўлмагунча устига ёзмаймиз
@@ -2126,6 +2130,10 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
           const cur = await tx.get(mainRef);
           // Булутда ҳеч нарса бўлмаса — маҳаллийни юклаймиз; бўлса — рақам кутилганга мос бўлиши шарт
           const curRev = cur.exists ? cloudRevOf(cur.data()) : 0;
+          const cloudAppVer = cur.exists ? Number(cur.data().appVersion || 0) : 0;
+          if(cloudAppVer > APP_VERSION){
+            const e2 = new Error("OLD_APP"); e2.code = "OLD_APP"; throw e2;
+          }
           if(cur.exists && !force && curRev !== expected){
             const err = new Error("REV_CONFLICT"); err.code = "REV_CONFLICT"; throw err;
           }
@@ -2133,7 +2141,7 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
           const prevCount = cur.exists ? (cur.data().chunkCount || 0) : 0;
           chunks.forEach((ch,i)=> tx.set(db.collection(COLL_BACKUP).doc("chunk_"+i), {data:ch}));
           for(let i=chunks.length;i<prevCount;i++) tx.delete(db.collection(COLL_BACKUP).doc("chunk_"+i));
-          tx.set(mainRef, { updatedAt: Date.now(), chunkCount: chunks.length, sizeBytes: payload.length, device: deviceId(), rev: newRev });
+          tx.set(mainRef, { updatedAt: Date.now(), chunkCount: chunks.length, sizeBytes: payload.length, device: deviceId(), rev: newRev, appVersion: APP_VERSION });
         });
         setBaseRev(newRev);
         // Агар юклаш давомида янги ўзгариш бўлмаган бўлса — белгини олиб ташлаймиз
@@ -2147,7 +2155,12 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
         maybeCreateVersion(payload).catch(e=> console.warn("Версия сақланмади:", e && e.message));
         ok = true;
       }catch(e){
-        if(e && e.code === "REV_CONFLICT"){ needReread = true; }
+        if(e && e.code === "OLD_APP"){
+          oldAppBlocked = true;
+          setStatus("Янги нусха керак", "var(--bad)");
+          if(typeof renderEntryBanners === "function") renderEntryBanners();
+        }
+        else if(e && e.code === "REV_CONFLICT"){ needReread = true; }
         else{
           console.error("Булутга сақлашда хато:", e);
           setStatus("Сақланмади (офлайн?)", "var(--bad)");
@@ -2600,7 +2613,7 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
     })();
 
     return {
-      isReady, getDb, getConflict, resolveConflict, debugAuthStatus,
+      isReady, getDb, getConflict, resolveConflict, isOldApp(){ return oldAppBlocked; }, appVersion: APP_VERSION, debugAuthStatus,
       listVersions, createVersionNow, restoreVersion,
       setAgentMode(v){ agentMode = !!v; },
       startReadOnly(){
@@ -3397,6 +3410,13 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
       html += `<div class="card" style="margin-bottom:14px;"><h2 style="margin-bottom:12px;">Бугунги кунлик мақсад бажарилиши</h2>${rows}</div>`;
     }
 
+    if(CLOUD.isOldApp && CLOUD.isOldApp()){
+      html = `<div class="card" style="border-left:4px solid var(--bad);padding:14px 18px;margin-bottom:14px;">
+        <b style="color:var(--bad);">⚠ Янги нусха керак</b><br>
+        <span style="font-size:13px;">Булутда янгироқ дастур версияси бор. Шу сабабли бу қурилма маълумотни ёзмайди (эски нусха маълумотни бузмаслиги учун).
+        Сайтни янгиланг: Chrome'да Ctrl+Shift+R ёки сайт маълумотини тозаланг.</span>
+      </div>` + html;
+    }
     const cf = CLOUD.getConflict && CLOUD.getConflict();
     if(cf){
       html = `<div class="card" style="border-left:4px solid var(--bad);padding:14px 18px;margin-bottom:14px;">
@@ -4930,15 +4950,37 @@ ${XL_PAGE}
   const pivotColVal = (P, name, col) => col.type === "day"
     ? (P.byCar[name][col.d] || 0)
     : col.days.reduce((s,d)=> s + (P.byCar[name][d] || 0), 0);
+  // Ҳақиқий нақд пул бўйича ойлик ҳолат (олинган ва қолган суммалар). Қисман ёпилган кун алоҳида қайтарилади.
+  // Манба — нақд олишлар санаси ва топширилган суммалар (сана бўйича): ҳар бир сўм ўз санасида ҳисобланади.
+  function pivotActualTotals(month){
+    const taken = computeTakenCutoff();
+    const mStart = month + "-01", mEnd = month + "-31";
+    const days = Object.keys(taken.dayTotals).sort();
+    const monthDays = days.filter(d=> d.slice(0,7) === month);
+    const top = monthDays.reduce((s,d)=> s + taken.dayTotals[d], 0);
+    const before = days.filter(d=> d < mStart).reduce((s,d)=> s + taken.dayTotals[d], 0);
+    const cashEnd = cashTaken.filter(x=> x.sana && x.sana <= mEnd).reduce((s,x)=> s + Number(x.summa || 0), 0);
+    const pool = Math.max(0, cashEnd - before);
+    const given = Math.min(top, pool);
+    const rest = top - given;
+    let partialDay = null, partialAmt = 0, acc = 0;
+    for(const d of monthDays){
+      const v = taken.dayTotals[d];
+      if(acc + v <= pool){ acc += v; continue; }
+      if(pool > acc){ partialDay = d; partialAmt = pool - acc; }
+      break;
+    }
+    // Шу ой санасида олинган нақд ва уның олдинги ой қарзига кетган қисми
+    const cashInMonth = cashTaken.filter(x=> x.sana && x.sana >= mStart && x.sana <= mEnd).reduce((s,x)=> s + Number(x.summa || 0), 0);
+    const cashBefore = cashTaken.filter(x=> x.sana && x.sana < mStart).reduce((s,x)=> s + Number(x.summa || 0), 0);
+    const unpaidBefore = Math.max(0, before - cashBefore);
+    const priorPaid = Math.min(cashInMonth, unpaidBefore);
+    return { top, given, rest, partialDay, partialAmt, partialTotal: partialDay ? taken.dayTotals[partialDay] : 0, cashInMonth, priorPaid };
+  }
+
   function pivotTotals(P, plan){
-    const t = { given:0, rest:0, all:0 };
-    plan.cols.forEach(col=>{
-      if(col.type === "day") return;
-      const v = P.carNames.reduce((s,n)=> s + pivotColVal(P, n, col), 0);
-      if(col.type === "given") t.given += v; else t.rest += v;
-    });
-    t.all = t.given + t.rest;
-    return t;
+    const A = pivotActualTotals(P.month);
+    return { given: A.given, rest: A.rest, all: A.top };
   }
 
   function buildPivot(){
@@ -4998,13 +5040,8 @@ ${XL_PAGE}
     // Шу ой учун "топширилган" суммадан қанчаси олинган (яшил) ва қанчаси
     // ҳали олинмаган (қолдиқ) эканини жамлаймиз — метр (tushum/sof/topshirilgan)
     // танловидан қатъи назар, ҳамиша ҳақиқий топширилган сумма асосида.
-    let monthOlingan = 0, monthQolmagan = 0;
-    Object.keys(taken.dayTotals).forEach(ds=>{
-      if(ds.slice(0,7) !== monthPrefix) return;
-      const v = taken.dayTotals[ds];
-      if(taken.cutoffDate && ds <= taken.cutoffDate) monthOlingan += v;
-      else monthQolmagan += v;
-    });
+    const ACT = pivotActualTotals(monthPrefix);
+    const monthOlingan = ACT.given, monthQolmagan = ACT.rest;
 
     // Устунлар режаси: кунлар + (нақд олинган бўлса) яшил «Берилди» + охирида сариқ «Жами»
     const plan = pivotPlan(P);
@@ -5044,7 +5081,7 @@ ${XL_PAGE}
 
     // Изоҳ: қайси кунлар қайси куни қанча нақд билан қопланган
     let legend = "";
-    if(plan.hasGiven){
+    if(plan.hasGiven || ACT.partialDay || ACT.cashInMonth > 0){
       const T = pivotTotals(P, plan);
       const rng = ds => ds.length === 1 ? `${ds[0]}-кун` : `${ds[0]}–${ds[ds.length-1]}-кунлар`;
       const lines = plan.cols.filter(col=> col.type === "given").map(col=>{
@@ -5058,8 +5095,10 @@ ${XL_PAGE}
         <div><span class="pv-chip" style="background:#92d050;"></span><b>Берилди</b> — нақд пул билан қопланган кунларнинг йиғиндиси (${unitLabel0}):</div>
         ${lines}
         <div style="margin-top:3px;"><span class="pv-chip" style="background:#ffe600;"></span><b>Жами</b> — ҳали қопланмаган кунлар йиғиндиси${rest.days.length ? ` (${rng(rest.days)})` : ""}:
-          <b>${rest.days.length ? show(T.rest) : "йўқ — ҳаммаси қопланган"}</b></div>
+          <b>${T.rest > 0 ? show(T.rest) : "йўқ — ҳаммаси қопланган"}</b></div>
+        ${ACT.partialDay ? `<div style="margin-top:3px;"><span class="pv-chip" style="background:#fff3a0;"></span><b>Қисман</b> — ${fmtDate(ACT.partialDay)} куни: <b>${show(ACT.partialAmt)}</b> қопланган, ${show(ACT.partialTotal - ACT.partialAmt)} қолган (бу кун яшилга тўлиқ кирмаган)</div>` : ""}
         <div style="color:var(--muted);">Ойда жами: ${show(T.all)} · берилган: ${show(T.given)} · қолган: ${show(T.rest)}</div>
+        ${ACT.cashInMonth > 0 ? `<div style="margin-top:4px;"><b>Шу ойда олинган нақд: ${fmt(ACT.cashInMonth)} сўм</b> — шундан <b>${fmt(ACT.priorPaid)}</b> олдинги ой қарзига, <b>${fmt(ACT.given)}</b> шу ойнинг топширилганига (сўм ҳисобида)</div>` : ""}
       </div>`;
     }
 
