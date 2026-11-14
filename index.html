@@ -2453,6 +2453,15 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
       catch(e){ console.warn("Булутдан ўчиришда хато:", e && e.message); }
     }
 
+    // Ёзувлар ҳақиқатан булутдаги асосий нусхада борлигини текшириш (янги ўқиш, кэш эмас)
+    async function verifyInCloud(ids){
+      if(!ready || !ids.length) return true;
+      const d = await getShared(true);
+      if(!d || !Array.isArray(d.records)) return false;
+      const have = new Set(d.records.map(r=> r.id));
+      return ids.every(id=> have.has(id));
+    }
+
     async function markClaimed(ids){
       if(!ready || !ids.length) return;
       await ensureAuth();
@@ -2650,7 +2659,7 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
       },
       pushAgentRecord, fetchAgentTodayRecords, fetchAgentTodayRecordsAll, fetchAgentMonthRecords,
       fetchSharedRecords, fetchSharedCars, fetchSharedAll,
-      listenAgentInbox, markClaimed, removeFromInbox, deleteInboxRecord,
+      listenAgentInbox, markClaimed, verifyInCloud, removeFromInbox, deleteInboxRecord,
       watchBackupMeta, watchOwnInbox, stopLiveWatches,
       saveAgentsToCloud, loadAgentsFromCloud, setStatus
     };
@@ -7946,7 +7955,7 @@ ${XL_PAGE}
     renderAgentInboxStatus();
     CLOUD.uploadNowSilent().then(ok=>{
       if(!ok) throw new Error("upload failed");
-      return CLOUD.removeFromInbox(ids).then(()=>{
+      return CLOUD.verifyInCloud(ids).then(okv=>{ if(!okv) throw new Error("not in cloud yet"); return CLOUD.markClaimed(ids); }).then(()=>{
         agentInboxState.status = "confirmed";
         agentInboxState.lastConfirmedCount = ids.length;
         agentInboxState.retryDelayIndex = 0;
@@ -7976,9 +7985,10 @@ ${XL_PAGE}
         return;
       }
       const existing = new Set(records.map(r=> r.id));
-      const fresh = incoming.filter(r=> !existing.has(r.id));
-      if(fresh.length){
-        fresh.forEach(r=>{
+      const toAdd = incoming.filter(r=> !existing.has(r.id));          // маҳаллий рўйхатда йўқ ҳамма ёзув
+      const fresh = toAdd.filter(r=> !r.claimed);                       // ҳали қабул қилинмаган — янги
+      if(toAdd.length){
+        toAdd.forEach(r=>{
           records.push({
             id: r.id, sana: r.sana, mashina: r.mashina, shofyor: r.shofyor||"",
             yonalish: r.yonalish||"", tushum: Number(r.tushum||0), yoqilgi: Number(r.yoqilgi||0),
@@ -7992,7 +8002,7 @@ ${XL_PAGE}
         logAudit("Агент ёзувлари қабул қилинди", `${fresh.length} та ёзув`);
         renderEntryBanners();
         refreshActiveView();
-        toast(`Агентдан ${fresh.length} та янги ёзув · жами ${fmt(fresh.reduce((s,r)=> s + Number(r.tushum||0), 0))} сўм ✓`);
+        if(fresh.length) toast(`Агентдан ${fresh.length} та янги ёзув · жами ${fmt(fresh.reduce((s,r)=> s + Number(r.tushum||0), 0))} сўм ✓`);
         announceNewAgentRecords(fresh);
       }
       // Ҳар доим ЖОРИЙ, тўлиқ inbox ҳолатини (эски + янги) булутга тасдиқлаб
