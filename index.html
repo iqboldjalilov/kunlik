@@ -2462,6 +2462,24 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
       return ids.every(id=> have.has(id));
     }
 
+    // Бот амаллари (нақд олиш, шофёр топшириши) — бажарилмаганлари
+    let opsUnsub = null;
+    function listenBotOps(onNew){
+      if(!ready || opsUnsub) return;
+      opsUnsub = db.collection("kunlik_bot_ops").where("done", "==", false)
+        .onSnapshot(snap=>{
+          const incoming = [];
+          snap.forEach(d=> incoming.push({id: d.id, ...d.data()}));
+          if(incoming.length) onNew(incoming);
+        }, e=> console.warn("Бот амаллари кузатувида хато:", e && e.message));
+    }
+    async function markOpsDone(ids){
+      if(!ready || !ids.length) return;
+      const batch = db.batch();
+      ids.forEach(id=> batch.update(db.collection("kunlik_bot_ops").doc(id), {done: true}));
+      await batch.commit();
+    }
+
     async function markClaimed(ids){
       if(!ready || !ids.length) return;
       await ensureAuth();
@@ -2659,7 +2677,7 @@ function kh_on(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
       },
       pushAgentRecord, fetchAgentTodayRecords, fetchAgentTodayRecordsAll, fetchAgentMonthRecords,
       fetchSharedRecords, fetchSharedCars, fetchSharedAll,
-      listenAgentInbox, markClaimed, verifyInCloud, removeFromInbox, deleteInboxRecord,
+      listenAgentInbox, markClaimed, verifyInCloud, listenBotOps, markOpsDone, removeFromInbox, deleteInboxRecord,
       watchBackupMeta, watchOwnInbox, stopLiveWatches,
       saveAgentsToCloud, loadAgentsFromCloud, setStatus
     };
@@ -7972,6 +7990,27 @@ ${XL_PAGE}
     });
   }
 
+  // Бот амалларини қўллаш (нақд олиш → касса ва ойлик ҳисоб; шофёр топшириши → қарз камаяди)
+  function applyBotOps(incoming){
+    const done = [];
+    incoming.forEach(op=>{
+      if(op.type === "cash_taken"){
+        cashTaken.push({ id: uid(), sana: op.sana, summa: Number(op.summa || 0), mashina: "", izoh: (op.izoh ? op.izoh + " " : "") + "(бот)" });
+        done.push(op.id);
+      } else if(op.type === "driver_paid"){
+        debtPayments.push({ id: uid(), shofyor: normDriver(op.shofyor), sana: op.sana, summa: Number(op.summa || 0), izoh: "бот орқали" });
+        done.push(op.id);
+      }
+    });
+    if(!done.length) return;
+    saveCashTaken(cashTaken);
+    saveDebtPayments(debtPayments);
+    logAudit("Бот орқали амал қабул қилинди", done.length + " та");
+    if(typeof renderDebts === "function") renderDebts();
+    CLOUD.markOpsDone(done).catch(()=>{});
+    toast(`Ботдан ${done.length} та амал қабул қилинди ✓`);
+  }
+
   function startAgentInboxListener(){
     CLOUD.listenAgentInbox(async incoming=>{
       if(currentAgent) return;
@@ -9448,6 +9487,7 @@ ${XL_PAGE}
   }else{
     if(CLOUD.start()){
       startAgentInboxListener();
+      CLOUD.listenBotOps(applyBotOps);
       if(!getPwHash() || isTrusted()){
         setTimeout(()=>{ if(!currentAgent) CLOUD.runCheck(); }, 1200);
       }
