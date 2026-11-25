@@ -5894,9 +5894,24 @@ ${XL_PAGE}
       }).join("");
       const TT = keys.reduce((s,k)=> s + (topBy[k] || 0), 0);
       const TG = keys.reduce((s,k)=> s + (gotBy[k] || 0), 0);
+      const hasUnassigned = cashTaken.some(x=> !x.mashina && Number(x.summa || 0) > 0);
       box.innerHTML = `<div style="font-size:13px;color:var(--muted);margin:4px 0 6px;">Мошиналар бўйича жами (барча вақт)</div>
         <table><thead><tr><th>Мошина</th><th>Топширилган</th><th>Олинган</th><th>Қолдиқ</th></tr></thead>
-        <tbody>${rowsT}<tr style="background:var(--gold-soft);font-weight:800;"><td>ЖАМИ</td><td>${fmt(TT)}</td><td>${fmt(TG)}</td><td>${fmt(TT - TG)}</td></tr></tbody></table>`;
+        <tbody>${rowsT}<tr style="background:var(--gold-soft);font-weight:800;"><td>ЖАМИ</td><td>${fmt(TT)}</td><td>${fmt(TG)}</td><td>${fmt(TT - TG)}</td></tr></tbody></table>
+        ${hasUnassigned ? `<div style="margin-top:8px;"><button class="btn gold small" id="cashMigrateBtn">🔁 Умумий нақдни мошиналарга тақсимлаш</button> <span style="font-size:12px;color:var(--muted);">(эски ёзувлар, жами ўзгармайди)</span></div>` : ""}`;
+      const mBtn = document.getElementById("cashMigrateBtn");
+      if(mBtn) mBtn.addEventListener("click", ()=> requirePasswordThen(async ()=>{
+        const ok = await customConfirmAsync("Умумий нақд ёзувлари мошиналарга бўлинади.\n\nАввал захира нусха олинг. Жами сумма ўзгармайди. Давом этасизми?");
+        if(!ok) return;
+        const { list, converted } = migrateUnassignedCash();
+        if(!converted){ toast("Бўлинадиган умумий ёзув йўқ"); return; }
+        cashTaken = list;
+        saveCashTaken(cashTaken);
+        logAudit("Умумий нақд мошиналарга тақсимланди", converted + " та ёзув");
+        renderCashTaken();
+        if(typeof renderDebts === "function") renderDebts();
+        toast(`Тақсимланди ✓ (${converted} та ёзув)`);
+      }));
     }
     if(!cashTaken.length){
       body.innerHTML = `<tr><td colspan="5" class="empty">Ҳали нақд пул олиш қайд этилмаган. Юқоридаги формадан биринчи ёзувни қўшинг ↑</td></tr>`;
@@ -8062,6 +8077,34 @@ ${XL_PAGE}
       break;
     }
     return out;
+  }
+
+  // Эски «Умумий» нақдларни кетма-кет (сана бўйича) мошиналарга бўлиш. Жами ўзгармайди.
+  function migrateUnassignedCash(){
+    const indexed = cashTaken.map((x,i)=> ({ x, i }))
+      .sort((a,b)=> String(a.x.sana).localeCompare(String(b.x.sana)) || (a.i - b.i));
+    const newList = [];
+    let total = 0, converted = 0;
+    indexed.forEach(({ x })=>{
+      const amt = Number(x.summa || 0);
+      if(!x.mashina && amt > 0){
+        const before = coveredByCar(total);
+        const after = coveredByCar(total + amt);
+        const cars = new Set([...Object.keys(before), ...Object.keys(after)]);
+        let sum = 0;
+        cars.forEach(car=>{
+          const d = (after[car] || 0) - (before[car] || 0);
+          if(d > 0){ newList.push({ id: uid(), sana: x.sana, summa: d, mashina: car, izoh: x.izoh || "" }); sum += d; }
+        });
+        const extra = amt - sum;
+        if(extra > 0) newList.push({ id: uid(), sana: x.sana, summa: extra, mashina: "", izoh: x.izoh || "" });
+        converted++;
+      } else {
+        newList.push(x);
+      }
+      total += amt;
+    });
+    return { list: newList, converted };
   }
 
   // Янги нақд суммани мошиналарга бўлиш: ёпилган улушнинг ўзгариши (олдин / кейин)
