@@ -8005,56 +8005,53 @@ ${XL_PAGE}
     });
   }
 
-  // Мошина бўйича қолдиқ: ҳар мошинанинг олдинги нақдлари эски кундан бошлаб ёпилади.
-  // Натижа: rem[сана][мошина] = шу кундан қолган топширилмаган сумма.
-  function carRemainingByDay(){
-    const topByCar = {};
+  // Жадвалдаги каби: умумий нақд пул эски кунлардан бошлаб ёпади. Ҳар мошинанинг ёпилган улуши.
+  // pool = жами олинган нақд. Қайтаради: { мошина: шу пулга ёпилган топширилган сумма }.
+  function coveredByCar(pool){
+    const perDay = {};
     records.forEach(r=>{
       if(r.topshirilgan === null || r.topshirilgan === undefined || !r.sana) return;
       const car = r.mashina || "(Номаълум)";
-      topByCar[car] = topByCar[car] || {};
-      topByCar[car][r.sana] = (topByCar[car][r.sana] || 0) + Number(r.topshirilgan);
+      perDay[r.sana] = perDay[r.sana] || {};
+      perDay[r.sana][car] = (perDay[r.sana][car] || 0) + Number(r.topshirilgan);
     });
-    const recByCar = {};
-    cashTaken.forEach(x=>{
-      if(!x.mashina || !x.sana) return;
-      recByCar[x.mashina] = recByCar[x.mashina] || [];
-      recByCar[x.mashina].push({ sana: x.sana, summa: Number(x.summa || 0) });
-    });
-    const rem = {};
-    Object.keys(topByCar).forEach(car=>{
-      let pool = (recByCar[car] || []).reduce((s,x)=> s + x.summa, 0);
-      Object.keys(topByCar[car]).sort().forEach(d=>{
-        const t = topByCar[car][d];
-        const use = Math.min(t, pool);
-        pool -= use;
-        const left = t - use;
-        if(left > 0){ rem[d] = rem[d] || {}; rem[d][car] = left; }
-      });
-    });
-    return rem;
-  }
-
-  // Нақд суммани мошиналар бўйича тақсимлаш: эски кундан бошлаб, ҳар мошинанинг қолдиғига қараб
-  function allocateCashToCars(amount){
-    const rem = carRemainingByDay();
-    let left = Math.round(Number(amount) || 0);
-    const out = [];
-    for(const d of Object.keys(rem).sort()){
-      if(left <= 0) break;
-      const cars = Object.keys(rem[d]).map(car=>({ car, rem: rem[d][car] })).filter(x=> x.rem > 0);
-      const dayRem = cars.reduce((s,x)=> s + x.rem, 0);
-      if(!dayRem) continue;
-      const take = Math.min(left, dayRem);
+    const out = {};
+    let left = Math.max(0, Math.round(Number(pool) || 0));
+    for(const d of Object.keys(perDay).sort()){
+      const cars = Object.keys(perDay[d]);
+      const T = cars.reduce((s,x)=> s + perDay[d][x], 0);
+      if(T <= 0) continue;
+      if(left >= T){
+        cars.forEach(x=> { out[x] = (out[x] || 0) + perDay[d][x]; });
+        left -= T;
+        continue;
+      }
       let used = 0;
       cars.forEach((x, i)=>{
-        const part = (i === cars.length - 1) ? (take - used) : Math.floor(take * x.rem / dayRem);
-        if(part > 0) out.push({ car: x.car, summa: part });
+        const part = (i === cars.length - 1) ? (left - used) : Math.floor(left * perDay[d][x] / T);
+        out[x] = (out[x] || 0) + part;
         used += part;
       });
-      left -= take;
+      break;
     }
-    if(left > 0) out.push({ car: "", summa: left });   // ортиқча — умумий
+    return out;
+  }
+
+  // Янги нақд суммани мошиналарга бўлиш: ёпилган улушнинг ўзгариши (олдин / кейин)
+  function allocateCashToCars(amount){
+    const amt = Math.round(Number(amount) || 0);
+    const totalBefore = cashTaken.reduce((s,x)=> s + Number(x.summa || 0), 0);
+    const before = coveredByCar(totalBefore);
+    const after = coveredByCar(totalBefore + amt);
+    const cars = new Set([...Object.keys(before), ...Object.keys(after)]);
+    const out = [];
+    let sum = 0;
+    cars.forEach(x=>{
+      const d = (after[x] || 0) - (before[x] || 0);
+      if(d > 0){ out.push({ car: x, summa: d }); sum += d; }
+    });
+    const extra = amt - sum;                       // жадвалда ёпилмаган ортиқча — умумий
+    if(extra > 0) out.push({ car: "", summa: extra });
     return out;
   }
 
