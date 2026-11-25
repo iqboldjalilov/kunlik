@@ -5868,6 +5868,36 @@ ${XL_PAGE}
     }
 
     const body = document.getElementById("cashTakenBody");
+    // Мошиналар бўйича жами (кунма-кун эмас): топширилган, олинган, қолдиқ
+    {
+      const topBy = {}, gotBy = {};
+      records.forEach(r=>{
+        if(r.topshirilgan === null || r.topshirilgan === undefined) return;
+        const k = r.mashina || "(Номаълум)";
+        topBy[k] = (topBy[k] || 0) + Number(r.topshirilgan || 0);
+      });
+      cashTaken.forEach(x=>{
+        const k = x.mashina || "Умумий";
+        gotBy[k] = (gotBy[k] || 0) + Number(x.summa || 0);
+      });
+      const keys = [...new Set([...Object.keys(topBy), ...Object.keys(gotBy)])].sort();
+      let box = document.getElementById("cashCarTotals");
+      if(!box){
+        box = document.createElement("div");
+        box.id = "cashCarTotals";
+        body.closest(".table-wrap").before(box);
+      }
+      const rowsT = keys.map(k=>{
+        const t = topBy[k] || 0, g = gotBy[k] || 0;
+        const name = k === "Умумий" ? '<span style="color:var(--muted);">Умумий</span>' : carPill(k);
+        return `<tr><td>${name}</td><td>${fmt(t)}</td><td>${fmt(g)}</td><td class="${t - g < 0 ? 'neg' : 'pos'}">${fmt(t - g)}</td></tr>`;
+      }).join("");
+      const TT = keys.reduce((s,k)=> s + (topBy[k] || 0), 0);
+      const TG = keys.reduce((s,k)=> s + (gotBy[k] || 0), 0);
+      box.innerHTML = `<div style="font-size:13px;color:var(--muted);margin:4px 0 6px;">Мошиналар бўйича жами (барча вақт)</div>
+        <table><thead><tr><th>Мошина</th><th>Топширилган</th><th>Олинган</th><th>Қолдиқ</th></tr></thead>
+        <tbody>${rowsT}<tr style="background:var(--gold-soft);font-weight:800;"><td>ЖАМИ</td><td>${fmt(TT)}</td><td>${fmt(TG)}</td><td>${fmt(TT - TG)}</td></tr></tbody></table>`;
+    }
     if(!cashTaken.length){
       body.innerHTML = `<tr><td colspan="5" class="empty">Ҳали нақд пул олиш қайд этилмаган. Юқоридаги формадан биринчи ёзувни қўшинг ↑</td></tr>`;
       return;
@@ -5896,10 +5926,7 @@ ${XL_PAGE}
       const daySum = group.reduce((s,c)=> s + Number(c.summa||0), 0);
       const open = ctExpandedDates.has(date);
       const cars0 = [...new Set(group.map(c=> c.mashina || ""))];
-      // Ўша куни ҳар мошинадан қанча — умумий йиғинди (ҳар қатор алоҳида эмас)
-      const perCarDay = {};
-      group.forEach(c=>{ const k = c.mashina || ""; perCarDay[k] = (perCarDay[k] || 0) + Number(c.summa || 0); });
-      const carsHtml = Object.keys(perCarDay).map(m=> (m ? carPill(m) : '<span style="color:var(--muted);">Умумий</span>') + ' <b>' + fmt(perCarDay[m]) + '</b>').join("<br>");
+      const carsHtml = cars0.map(m=> m ? carPill(m) : '<span style="color:var(--muted);">Умумий</span>').join(" ");
       const notes = [...new Set(group.map(c=> String(c.izoh || "").trim()).filter(Boolean))];
       const wantSum = group.reduce((s,c)=> s + Number(c.oldingi || 0), 0);
       const gotSum = group.reduce((s,c)=> s + ((carryModel.alloc && carryModel.alloc[c.id]) || 0), 0);
