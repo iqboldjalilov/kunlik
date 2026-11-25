@@ -6089,11 +6089,13 @@ ${XL_PAGE}
       });
     } else if(!data.mashina){
       const parts = allocateCashToCars(data.summa);
-      parts.forEach(p=>{
-        cashTaken.push({ id: uid(), sana: data.sana, summa: p.summa, mashina: p.car, izoh: data.izoh || "", dayRef: p.dayRef });
+      const byCar = {};
+      parts.forEach(p=>{ byCar[p.car] = (byCar[p.car] || 0) + p.summa; });
+      Object.keys(byCar).forEach(car=>{
+        cashTaken.push({ id: uid(), sana: data.sana, summa: byCar[car], mashina: car, izoh: data.izoh || "" });
       });
       saveCashTaken(cashTaken);
-      const detail = parts.map(p=> (p.car || "Умумий") + " — " + fmt(p.summa)).join("; ");
+      const detail = Object.keys(byCar).map(car=> (car || "Умумий") + " — " + fmt(byCar[car])).join("; ");
       logAudit("Нақд пул олиш (автоматик тақсимот)", `${data.sana} · ${fmt(data.summa)} · ${detail}`);
       finish();
       toast("Тақсимланди ✓ " + detail);
@@ -8003,34 +8005,56 @@ ${XL_PAGE}
     });
   }
 
-  // Нақд суммани мошиналар бўйича тақсимлаш: эски кундан бошлаб, ҳар кундаги топширилмаган улушга қараб
-  function allocateCashToCars(amount){
-    const dc = {};
+  // Мошина бўйича қолдиқ: ҳар мошинанинг олдинги нақдлари эски кундан бошлаб ёпилади.
+  // Натижа: rem[сана][мошина] = шу кундан қолган топширилмаган сумма.
+  function carRemainingByDay(){
+    const topByCar = {};
     records.forEach(r=>{
       if(r.topshirilgan === null || r.topshirilgan === undefined || !r.sana) return;
       const car = r.mashina || "(Номаълум)";
-      dc[r.sana] = dc[r.sana] || {};
-      dc[r.sana][car] = (dc[r.sana][car] || 0) + Number(r.topshirilgan);
+      topByCar[car] = topByCar[car] || {};
+      topByCar[car][r.sana] = (topByCar[car][r.sana] || 0) + Number(r.topshirilgan);
     });
-    const paid = {};
-    cashTaken.forEach(x=>{ if(x.dayRef && x.mashina) paid[x.dayRef + "|" + x.mashina] = (paid[x.dayRef + "|" + x.mashina] || 0) + Number(x.summa || 0); });
+    const recByCar = {};
+    cashTaken.forEach(x=>{
+      if(!x.mashina || !x.sana) return;
+      recByCar[x.mashina] = recByCar[x.mashina] || [];
+      recByCar[x.mashina].push({ sana: x.sana, summa: Number(x.summa || 0) });
+    });
+    const rem = {};
+    Object.keys(topByCar).forEach(car=>{
+      let pool = (recByCar[car] || []).reduce((s,x)=> s + x.summa, 0);
+      Object.keys(topByCar[car]).sort().forEach(d=>{
+        const t = topByCar[car][d];
+        const use = Math.min(t, pool);
+        pool -= use;
+        const left = t - use;
+        if(left > 0){ rem[d] = rem[d] || {}; rem[d][car] = left; }
+      });
+    });
+    return rem;
+  }
+
+  // Нақд суммани мошиналар бўйича тақсимлаш: эски кундан бошлаб, ҳар мошинанинг қолдиғига қараб
+  function allocateCashToCars(amount){
+    const rem = carRemainingByDay();
     let left = Math.round(Number(amount) || 0);
     const out = [];
-    for(const d of Object.keys(dc).sort()){
+    for(const d of Object.keys(rem).sort()){
       if(left <= 0) break;
-      const cars = Object.keys(dc[d]).map(car=>({ car, rem: dc[d][car] - (paid[d + "|" + car] || 0) })).filter(x=> x.rem > 0);
+      const cars = Object.keys(rem[d]).map(car=>({ car, rem: rem[d][car] })).filter(x=> x.rem > 0);
       const dayRem = cars.reduce((s,x)=> s + x.rem, 0);
       if(!dayRem) continue;
       const take = Math.min(left, dayRem);
       let used = 0;
       cars.forEach((x, i)=>{
         const part = (i === cars.length - 1) ? (take - used) : Math.floor(take * x.rem / dayRem);
-        if(part > 0) out.push({ car: x.car, summa: part, dayRef: d });
+        if(part > 0) out.push({ car: x.car, summa: part });
         used += part;
       });
       left -= take;
     }
-    if(left > 0) out.push({ car: "", summa: left, dayRef: "" });   // ортиқча — умумий
+    if(left > 0) out.push({ car: "", summa: left });   // ортиқча — умумий
     return out;
   }
 
